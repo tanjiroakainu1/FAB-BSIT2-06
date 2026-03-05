@@ -1,0 +1,68 @@
+export interface MenuItem {
+  id: string
+  name: string
+  description: string
+  price: number
+  imageUrl?: string
+  categoryId: string
+  available: boolean
+}
+
+export interface Category {
+  id: string
+  name: string
+  slug: string
+}
+
+export interface OrderItem {
+  menuItemId: string
+  name: string
+  quantity: number
+  price: number
+}
+
+export type PaymentMethod = 'cash' | 'gcash'
+export type PaymentStatus = 'pending' | 'paid'
+export type DeliveryOption = 'delivery' | 'pickup'
+export type DeliveryStatus = 'pending' | 'out_for_delivery' | 'delivered' | 'picked_up'
+/** Admin-only: whether order has been called out to customer. */
+export type CalledStatus = 'pending' | 'completed'
+/** Admin-only: kitchen progress. */
+export type KitchenStatus = 'pending' | 'completed'
+
+export interface Order {
+  id: string
+  items: OrderItem[]
+  total: number
+  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
+  createdAt: string
+  customerName: string
+  customerEmail: string
+  paymentMethod: PaymentMethod
+  paymentStatus: PaymentStatus
+  deliveryOption: DeliveryOption
+  deliveryStatus: DeliveryStatus
+  /** Delivery address (for delivery orders). */
+  deliveryAddress?: string
+  /** Event type (e.g. birthday, meeting). */
+  eventType?: string
+  /** Customer contact number. */
+  contactNumber?: string
+  /** Admin-only: order called out to customer (pending | completed). */
+  calledStatus?: CalledStatus
+  /** Admin-only: kitchen status (pending | completed). */
+  kitchenStatus?: KitchenStatus
+}
+
+export type OrderStatus = Order['status']
+
+/** Role that created the ups/downs entry (admin, kitchen, delivery). */
+export type UpsAndDownsRole = 'admin' | 'kitchen' | 'delivery'
+
+export interface UpsAndDownsEntry {
+  id: string
+  type: 'up' | 'down'
+  label: string
+  createdAt: string
+  role: UpsAndDownsRole
+}
