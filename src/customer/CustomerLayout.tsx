@@ -89,6 +89,14 @@ export default function CustomerLayout() {
               ) : (
                 <>
                   <NavLink
+                    to="/forgot-password-monitoring"
+                    className={({ isActive }) =>
+                      `text-xs sm:text-sm font-medium py-2 px-1 sm:py-0 sm:px-0 min-w-[44px] sm:min-w-0 text-center ${isActive ? 'text-white' : 'text-white/85 hover:text-white'}`
+                    }
+                  >
+                    Forgot password
+                  </NavLink>
+                  <NavLink
                     to="/login"
                     className={({ isActive }) =>
                       `text-xs sm:text-sm font-medium py-2 px-1 sm:py-0 sm:px-0 min-w-[44px] sm:min-w-0 text-center ${isActive ? 'text-white' : 'text-white/85 hover:text-white'}`
@@ -110,10 +118,12 @@ export default function CustomerLayout() {
           </div>
         </PageContainer>
       </header>
-      <main className="flex-1">
-        <Outlet />
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="scroll-area flex-1 min-h-0">
+          <Outlet />
+        </div>
+        <TeamCreditsFooter />
       </main>
-      <TeamCreditsFooter />
     </div>
   )
 }

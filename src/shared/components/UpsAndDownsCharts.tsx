@@ -33,16 +33,10 @@ export function UpsAndDownsCharts({ entries }: UpsAndDownsChartsProps) {
   })
 
   return (
-    <div className="space-y-6 sm:space-y-8 min-w-0 overflow-hidden">
-      <div className="w-full max-w-full">
-        <PieChart data={pieData} title="Ups vs Downs" size={180} />
-      </div>
-      <div className="w-full max-w-full min-w-0">
-        <ColumnChart data={byDay} title="Last 7 days" height={140} />
-      </div>
-      <div className="w-full max-w-full min-w-0">
-        <AreaChart data={byDay} title="Last 7 days (area)" height={120} color="#86efac" />
-      </div>
-    </div>
+    <>
+      <PieChart data={pieData} title="Ups vs Downs" size={160} />
+      <ColumnChart data={byDay} title="Last 7 days" height={160} />
+      <AreaChart data={byDay} title="Last 7 days (area)" height={140} color="#86efac" />
+    </>
   )
 }

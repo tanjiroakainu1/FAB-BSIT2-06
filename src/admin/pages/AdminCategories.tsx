@@ -5,9 +5,19 @@ import type { Category } from '@shared/types'
 
 export default function AdminCategories() {
   const { categories, addCategory, updateCategory, deleteCategory } = useAppData()
+  const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Category | null>(null)
   const [addName, setAddName] = useState('')
   const [editName, setEditName] = useState('')
+
+  const searchLower = search.trim().toLowerCase()
+  const filteredCategories = searchLower
+    ? categories.filter(
+        (c) =>
+          c.name.toLowerCase().includes(searchLower) ||
+          c.slug.toLowerCase().includes(searchLower)
+      )
+    : categories
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,6 +70,19 @@ export default function AdminCategories() {
         </button>
       </form>
 
+      <div className="card-diamond mt-6 rounded-xl p-4 sm:p-5">
+        <label htmlFor="category-search" className="sr-only">Search categories</label>
+        <input
+          id="category-search"
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name or slug..."
+          className="w-full max-w-md rounded-lg border border-diamond-border bg-diamond-surface px-4 py-2.5 text-diamond placeholder-diamond-muted transition focus:border-crimson focus:outline-none focus:ring-2 focus:ring-crimson/20"
+          aria-label="Search categories"
+        />
+      </div>
+
       <div className="card-diamond mt-6 overflow-hidden rounded-lg -mx-3 sm:mx-0">
         <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         <table className="min-w-[320px] sm:min-w-full divide-y divide-diamond-border">
@@ -71,14 +94,14 @@ export default function AdminCategories() {
             </tr>
           </thead>
           <tbody className="divide-y divide-diamond-border bg-diamond-card">
-            {categories.length === 0 ? (
+            {filteredCategories.length === 0 ? (
               <tr>
                 <td colSpan={3} className="px-4 py-8 text-center text-diamond-muted">
-                  No categories yet. Add one above.
+                  {categories.length === 0 ? 'No categories yet. Add one above.' : 'No categories match your search.'}
                 </td>
               </tr>
             ) : (
-              categories.map((cat) => (
+              filteredCategories.map((cat) => (
                 <tr key={cat.id}>
                   <td className="px-4 py-3 text-diamond">
                     {editing?.id === cat.id ? (

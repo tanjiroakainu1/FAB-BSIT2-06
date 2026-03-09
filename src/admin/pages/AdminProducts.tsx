@@ -76,7 +76,7 @@ export default function AdminProducts() {
   }
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Delete this product?')) deleteMenuItem(id)
+    if (window.confirm('Move this product to archive? You can restore or permanently delete it from Archive.')) deleteMenuItem(id)
     if (editing?.id === id) resetForm()
   }
 

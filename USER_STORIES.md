@@ -12,4 +12,4 @@
 | 8 | Admin | I want a dashboard showing statistics (orders today, products count, pending orders) | So that I can monitor the business and prioritize work. |
 | 9 | Admin | I want to add, edit, and manage categories and products (including availability) in real time | So that the menu shown to customers is always accurate. |
 | 10 | Admin | I want to view all orders and manage order, payment, and delivery status | So that I can run operations and keep customers informed. |
-| 11 | Admin | I want to add Kitchen and Delivery users and view them in one place | So that I can control who can access staff and delivery dashboards. |
+| 11 | Admin | I want to add Kitchen and Delivery users and view them in one place | 3 |

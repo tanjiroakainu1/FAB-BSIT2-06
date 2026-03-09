@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { PageContainer } from '@shared/components'
-import { useAuth } from '@shared/context/AuthContext'
+import { useAuth, SYSTEM_ACCOUNTS } from '@shared/context'
 
 const ROLE_OPTIONS = [
   { value: 'customer', label: 'Customer' },
@@ -8,14 +8,46 @@ const ROLE_OPTIONS = [
   { value: 'deliveryguy', label: 'Delivery' },
 ] as const
 
+type UserRow = 
+  | { type: 'system'; email: string; name: string; role: 'admin' | 'kitchen' | 'deliveryguy' }
+  | { type: 'added'; id: string; email: string; name: string; role: string; createdAt: string }
+
 export default function AdminUserManagement() {
   const { staffUsers, addStaffUser } = useAuth()
+  const [search, setSearch] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [role, setRole] = useState<'customer' | 'kitchen' | 'deliveryguy'>('kitchen')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  const allUsers: UserRow[] = useMemo(() => {
+    const system: UserRow[] = SYSTEM_ACCOUNTS.map((a) => ({ type: 'system', ...a }))
+    const added: UserRow[] = staffUsers.map((u) => ({
+      type: 'added' as const,
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      role: u.role,
+      createdAt: u.createdAt,
+    }))
+    return [...system, ...added]
+  }, [staffUsers])
+
+  const searchLower = search.trim().toLowerCase()
+  const filteredUsers = useMemo(
+    () =>
+      searchLower
+        ? allUsers.filter(
+            (u) =>
+              u.email.toLowerCase().includes(searchLower) ||
+              u.name.toLowerCase().includes(searchLower) ||
+              u.role.toLowerCase().includes(searchLower)
+          )
+        : allUsers,
+    [allUsers, searchLower]
+  )
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,6 +59,12 @@ export default function AdminUserManagement() {
     }
     setSubmitting(true)
     setSubmitError(null)
+    const systemEmails = SYSTEM_ACCOUNTS.map((a) => a.email.toLowerCase())
+    if (systemEmails.includes(trimmedEmail.toLowerCase())) {
+      setSubmitError('This email is used by a system account. Use a different email.')
+      setSubmitting(false)
+      return
+    }
     if (staffUsers.some((u) => u.email.toLowerCase() === trimmedEmail.toLowerCase())) {
       setSubmitError('A user with this email already exists.')
       setSubmitting(false)
@@ -49,7 +87,7 @@ export default function AdminUserManagement() {
     <PageContainer>
       <h1 className="text-2xl font-bold text-diamond">User management</h1>
       <p className="mt-2 text-diamond-muted">
-        Add Kitchen and Delivery users. All users are stored locally in this browser.
+        View system accounts (Admin, Kitchen, Delivery) and add more Kitchen or Delivery users. All data is stored locally in this browser.
       </p>
 
       <form onSubmit={handleSubmit} className="card-diamond mt-6 flex flex-wrap items-end gap-4 rounded-lg p-4">
@@ -107,32 +145,55 @@ export default function AdminUserManagement() {
         {submitError && <p className="w-full text-sm text-crimson">{submitError}</p>}
       </form>
 
+      <div className="card-diamond mt-6 rounded-xl p-4 sm:p-5">
+        <label htmlFor="user-search" className="sr-only">Search users</label>
+        <input
+          id="user-search"
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by email, name, or role..."
+          className="w-full max-w-md rounded-lg border border-diamond-border bg-diamond-surface px-4 py-2.5 text-diamond placeholder-diamond-muted transition focus:border-crimson focus:outline-none focus:ring-2 focus:ring-crimson/20"
+          aria-label="Search users"
+        />
+      </div>
+
       <div className="card-diamond mt-6 overflow-hidden rounded-lg -mx-3 sm:mx-0">
         <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <table className="min-w-[400px] sm:min-w-full divide-y divide-diamond-border">
+        <table className="min-w-[480px] sm:min-w-full divide-y divide-diamond-border">
           <thead className="bg-diamond-surface">
             <tr>
               <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Email</th>
               <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Name</th>
               <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Role</th>
+              <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Type</th>
               <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Created</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-diamond-border bg-diamond-card">
-            {staffUsers.length === 0 ? (
+            {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-diamond-muted">
-                  No users yet. Add one above or register from the app.
+                <td colSpan={5} className="px-4 py-8 text-center text-diamond-muted">
+                  No users match your search.
                 </td>
               </tr>
             ) : (
-              staffUsers.map((u) => (
-                <tr key={u.id}>
+              filteredUsers.map((u) => (
+                <tr key={u.type === 'system' ? u.email : u.id}>
                   <td className="px-2 sm:px-4 py-3 text-diamond text-xs sm:text-sm truncate max-w-[140px] sm:max-w-none">{u.email}</td>
                   <td className="px-2 sm:px-4 py-3 text-diamond text-xs sm:text-sm">{u.name}</td>
-                  <td className="px-2 sm:px-4 py-3 text-diamond capitalize text-xs sm:text-sm">{u.role}</td>
+                  <td className="px-2 sm:px-4 py-3 text-diamond capitalize text-xs sm:text-sm">
+                    {u.role === 'deliveryguy' ? 'Delivery' : u.role}
+                  </td>
+                  <td className="px-2 sm:px-4 py-3">
+                    {u.type === 'system' ? (
+                      <span className="inline-flex items-center rounded-md bg-crimson/10 px-2 py-0.5 text-xs font-medium text-crimson">System</span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-md bg-diamond-surface border border-diamond-border px-2 py-0.5 text-xs font-medium text-diamond-muted">Added</span>
+                    )}
+                  </td>
                   <td className="px-2 sm:px-4 py-3 text-diamond-muted text-xs sm:text-sm whitespace-nowrap">
-                    {new Date(u.createdAt).toLocaleString()}
+                    {u.type === 'system' ? '—' : new Date(u.createdAt).toLocaleString()}
                   </td>
                 </tr>
               ))

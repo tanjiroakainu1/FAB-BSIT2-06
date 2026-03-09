@@ -21,11 +21,32 @@ export interface AdminChatMessage {
   createdAt: string
 }
 
+/** 1-on-1 chat: participant id is 'admin' | 'kitchen' | 'delivery' or staff user id (uuid). */
+export interface DirectChatMessage {
+  id: string
+  conversationId: string
+  fromId: string
+  toId: string
+  text: string
+  createdAt: string
+}
+
+export function getConversationId(party1: string, party2: string): string {
+  return [party1, party2].sort().join(':')
+}
+
+/** Menu item stored in archive (with when it was archived). */
+export interface ArchivedMenuItem extends MenuItem {
+  archivedAt: string
+}
+
 interface StoredData {
   categories: Category[]
   menuItems: MenuItem[]
+  archivedMenuItems: ArchivedMenuItem[]
   orders: Order[]
   adminChatMessages: AdminChatMessage[]
+  directChatMessages: DirectChatMessage[]
   upsAndDowns: UpsAndDownsEntry[]
 }
 
@@ -57,8 +78,10 @@ const SEED_MENU_ITEMS: MenuItem[] = [
 const seedData: StoredData = {
   categories: SEED_CATEGORIES,
   menuItems: SEED_MENU_ITEMS,
+  archivedMenuItems: [],
   orders: [],
   adminChatMessages: [],
+  directChatMessages: [],
   upsAndDowns: [],
 }
 
@@ -103,9 +126,15 @@ function loadData(): StoredData {
       ...m,
       sender: validSenders.includes(m.sender as CommunityChatSender) ? (m.sender as CommunityChatSender) : 'admin',
     }))
+    const directChatMessages = Array.isArray(data.directChatMessages) ? data.directChatMessages : seedData.directChatMessages
     const upsAndDowns = Array.isArray(data.upsAndDowns) ? data.upsAndDowns : seedData.upsAndDowns
+    const archivedMenuItemsRaw = Array.isArray(data.archivedMenuItems) ? data.archivedMenuItems : []
+    const archivedMenuItems = archivedMenuItemsRaw.map((m: ArchivedMenuItem) => ({
+      ...migrateMenuItem(m),
+      archivedAt: m.archivedAt ?? new Date().toISOString(),
+    }))
     if (categories.length === 0 && menuItems.length === 0) return seedData
-    return { categories, menuItems, orders, adminChatMessages, upsAndDowns }
+    return { categories, menuItems, archivedMenuItems, orders, adminChatMessages, directChatMessages, upsAndDowns }
   } catch {
     return seedData
   }
@@ -128,7 +157,10 @@ interface AppDataContextValue extends StoredData {
   deleteCategory: (id: string) => void
   addMenuItem: (item: Omit<MenuItem, 'id'>) => MenuItem
   updateMenuItem: (id: string, item: Partial<Omit<MenuItem, 'id'>>) => void
+  /** Soft-delete: move product to archive (restore or permanently delete from Archive management). */
   deleteMenuItem: (id: string) => void
+  restoreMenuItem: (id: string) => void
+  permanentlyDeleteMenuItem: (id: string) => void
   addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => Order
   updateOrderStatus: (id: string, status: Order['status']) => void
   updateOrderPaymentStatus: (id: string, status: PaymentStatus) => void
@@ -136,6 +168,7 @@ interface AppDataContextValue extends StoredData {
   updateOrderCalledStatus: (id: string, status: CalledStatus) => void
   updateOrderKitchenStatus: (id: string, status: KitchenStatus) => void
   addAdminChatMessage: (sender: CommunityChatSender, text: string) => void
+  addDirectChatMessage: (conversationId: string, fromId: string, toId: string, text: string) => void
   addUpsAndDowns: (type: 'up' | 'down', label: string, role: UpsAndDownsRole) => UpsAndDownsEntry
 }
 
@@ -187,7 +220,36 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const deleteMenuItem = useCallback((id: string) => {
-    setData((d) => ({ ...d, menuItems: d.menuItems.filter((m) => m.id !== id) }))
+    setData((d) => {
+      const item = d.menuItems.find((m) => m.id === id)
+      if (!item) return d
+      const archived: ArchivedMenuItem = { ...item, archivedAt: new Date().toISOString() }
+      return {
+        ...d,
+        menuItems: d.menuItems.filter((m) => m.id !== id),
+        archivedMenuItems: [archived, ...d.archivedMenuItems],
+      }
+    })
+  }, [])
+
+  const restoreMenuItem = useCallback((id: string) => {
+    setData((d) => {
+      const archived = d.archivedMenuItems.find((m) => m.id === id)
+      if (!archived) return d
+      const { archivedAt: _, ...item } = archived
+      return {
+        ...d,
+        menuItems: [...d.menuItems, item],
+        archivedMenuItems: d.archivedMenuItems.filter((m) => m.id !== id),
+      }
+    })
+  }, [])
+
+  const permanentlyDeleteMenuItem = useCallback((id: string) => {
+    setData((d) => ({
+      ...d,
+      archivedMenuItems: d.archivedMenuItems.filter((m) => m.id !== id),
+    }))
   }, [])
 
   const addOrder = useCallback((order: Omit<Order, 'id' | 'createdAt'>) => {
@@ -252,6 +314,20 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setData((d) => ({ ...d, adminChatMessages: [...d.adminChatMessages, msg] }))
   }, [])
 
+  const addDirectChatMessage = useCallback((conversationId: string, fromId: string, toId: string, text: string) => {
+    const trimmed = text.trim()
+    if (!trimmed) return
+    const msg: DirectChatMessage = {
+      id: crypto.randomUUID(),
+      conversationId,
+      fromId,
+      toId,
+      text: trimmed,
+      createdAt: new Date().toISOString(),
+    }
+    setData((d) => ({ ...d, directChatMessages: [...d.directChatMessages, msg] }))
+  }, [])
+
   const addUpsAndDowns = useCallback((type: 'up' | 'down', label: string, role: UpsAndDownsRole) => {
     const entry: UpsAndDownsEntry = {
       id: crypto.randomUUID(),
@@ -273,6 +349,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       addMenuItem,
       updateMenuItem,
       deleteMenuItem,
+      restoreMenuItem,
+      permanentlyDeleteMenuItem,
       addOrder,
       updateOrderStatus,
       updateOrderPaymentStatus,
@@ -280,6 +358,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       updateOrderCalledStatus,
       updateOrderKitchenStatus,
       addAdminChatMessage,
+      addDirectChatMessage,
       addUpsAndDowns,
     }),
     [
@@ -290,6 +369,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       addMenuItem,
       updateMenuItem,
       deleteMenuItem,
+      restoreMenuItem,
+      permanentlyDeleteMenuItem,
       addOrder,
       updateOrderStatus,
       updateOrderPaymentStatus,
@@ -297,6 +378,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       updateOrderCalledStatus,
       updateOrderKitchenStatus,
       addAdminChatMessage,
+      addDirectChatMessage,
       addUpsAndDowns,
     ]
   )

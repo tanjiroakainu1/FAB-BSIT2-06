@@ -23,11 +23,13 @@ export function OrdersLast7DaysChart({ orders, title = 'Orders last 7 days' }: O
     value: orders.filter((o) => new Date(o.createdAt).toDateString() === day).length,
   }))
   return (
-    <>
-      <ColumnChart data={data} title={title} height={140} />
-      <LineChart data={data} title={`${title} (line)`} height={120} color="#c41e3a" />
-      <ColumnLineChart columnData={data} lineData={data} title={`${title} (column + line)`} height={140} />
-    </>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 min-w-0">
+      <ColumnChart data={data} title={title} height={160} />
+      <LineChart data={data} title={`${title} (line)`} height={140} color="#c41e3a" />
+      <div className="md:col-span-2 xl:col-span-1">
+        <ColumnLineChart columnData={data} lineData={data} title={`${title} (column + line)`} height={160} />
+      </div>
+    </div>
   )
 }
 
@@ -70,9 +72,9 @@ export function OrdersByStatusChart({ orders, type, title }: OrdersByStatusChart
   }
   const data = getStatusCounts(orders, type)
   return (
-    <>
-      <BarChart data={data} title={title ?? labels[type]} maxBarWidth={180} />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
+      <BarChart data={data} title={title ?? labels[type]} maxBarWidth={240} />
       <PieChart data={data.filter((d) => d.value > 0)} title={`${title ?? labels[type]} (proportion)`} size={160} />
-    </>
+    </div>
   )
 }
