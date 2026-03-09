@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageContainer } from '@shared/components'
 import { formatPrice } from '@shared/utils'
@@ -5,7 +6,14 @@ import { useAppData } from '@shared/context'
 
 export default function HomePage() {
   const { categories, menuItems } = useAppData()
+  const [searchQuery, setSearchQuery] = useState('')
   const availableItems = menuItems.filter((m) => m.available)
+  const searchLower = searchQuery.trim().toLowerCase()
+  const searchFilter = (m: (typeof availableItems)[0]) =>
+    !searchLower ||
+    m.name.toLowerCase().includes(searchLower) ||
+    (m.description && m.description.toLowerCase().includes(searchLower))
+  const itemsToShow = searchLower ? availableItems.filter(searchFilter) : availableItems
 
   return (
     <PageContainer className="pb-12">
@@ -42,55 +50,46 @@ export default function HomePage() {
         </div>
         <p className="mt-2 text-diamond-muted">Browse our offerings. Log in or register to place an order.</p>
 
+        {availableItems.length > 0 && (
+          <div className="mt-4">
+            <label htmlFor="home-menu-search" className="sr-only">Search products</label>
+            <input
+              id="home-menu-search"
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search products by name or description..."
+              className="w-full max-w-md rounded-lg border border-diamond-border bg-diamond-surface px-4 py-2.5 text-diamond placeholder-diamond-muted focus:border-crimson focus:outline-none focus:ring-2 focus:ring-crimson/20"
+              aria-label="Search products"
+            />
+          </div>
+        )}
+
         {categories.length === 0 && availableItems.length === 0 ? (
           <div className="card-diamond mt-8 rounded-xl p-12 text-center text-diamond-muted">
             <p className="text-sm">No menu items yet. Check back later.</p>
           </div>
+        ) : searchLower && itemsToShow.length === 0 ? (
+          <div className="card-diamond mt-8 rounded-xl p-8 text-center text-diamond-muted">
+            <p className="text-sm">No products match your search. Try a different term or <Link to="/menu" className="text-crimson hover:underline">browse the full menu</Link>.</p>
+          </div>
         ) : (
           <div className="mt-8 space-y-12">
             {categories.map((cat) => {
-              const items = availableItems.filter((m) => m.categoryId === cat.id)
+              const items = itemsToShow.filter((m) => m.categoryId === cat.id)
               if (items.length === 0) return null
               return (
                 <div key={cat.id}>
                   <h3 className="text-lg font-semibold text-diamond mb-4">{cat.name}</h3>
                   <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                    {items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="card-diamond group rounded-xl overflow-hidden transition-all duration-200 hover:shadow-[0_8px_30px_-8px_rgba(196,30,58,0.2)]"
-                      >
-                        {item.imageUrl && (
-                          <div className="relative h-44 overflow-hidden">
-                            <img
-                              src={item.imageUrl}
-                              alt=""
-                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden />
-                          </div>
-                        )}
-                        <div className="p-4 sm:p-5">
-                          <h4 className="font-semibold text-diamond">{item.name}</h4>
-                          {item.description && (
-                            <p className="mt-1.5 text-sm text-diamond-muted line-clamp-2">{item.description}</p>
-                          )}
-                          <p className="mt-3 text-lg font-semibold text-crimson">{formatPrice(item.price)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
-            {availableItems.length > 0 &&
-              availableItems.every((m) => !categories.some((c) => c.id === m.categoryId)) && (
-                <div>
-                  <h3 className="text-lg font-semibold text-diamond mb-4">Other</h3>
-                  <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                    {availableItems
-                      .filter((m) => !categories.some((c) => c.id === m.categoryId))
-                      .map((item) => (
+                    {items.map((item) => {
+                      const includedNames =
+                        item.productType === 'combo' && item.comboItemIds?.length
+                          ? item.comboItemIds
+                              .map((id) => menuItems.find((m) => m.id === id)?.name)
+                              .filter(Boolean) as string[]
+                          : []
+                      return (
                         <div
                           key={item.id}
                           className="card-diamond group rounded-xl overflow-hidden transition-all duration-200 hover:shadow-[0_8px_30px_-8px_rgba(196,30,58,0.2)]"
@@ -102,17 +101,85 @@ export default function HomePage() {
                                 alt=""
                                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                               />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden />
                             </div>
                           )}
                           <div className="p-4 sm:p-5">
-                            <h4 className="font-semibold text-diamond">{item.name}</h4>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="font-semibold text-diamond">{item.name}</h4>
+                              {item.productType === 'combo' && (
+                                <span className="text-xs font-medium px-2 py-0.5 rounded bg-crimson/15 text-crimson">Combo</span>
+                              )}
+                            </div>
+                            {includedNames.length > 0 && (
+                              <p className="mt-0.5 text-xs text-diamond-muted line-clamp-2">Includes: {includedNames.join(', ')}</p>
+                            )}
                             {item.description && (
                               <p className="mt-1.5 text-sm text-diamond-muted line-clamp-2">{item.description}</p>
                             )}
-                            <p className="mt-3 text-lg font-semibold text-crimson">{formatPrice(item.price)}</p>
+                            <p className="mt-3 text-lg font-semibold text-crimson">
+                              {item.halfTrayAvailable
+                                ? `${formatPrice(item.price / 2)} half / ${formatPrice(item.price)} full`
+                                : formatPrice(item.price)}
+                            </p>
                           </div>
                         </div>
-                      ))}
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+            {itemsToShow.length > 0 &&
+              itemsToShow.every((m) => !categories.some((c) => c.id === m.categoryId)) && (
+                <div>
+                  <h3 className="text-lg font-semibold text-diamond mb-4">Other</h3>
+                  <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    {itemsToShow
+                      .filter((m) => !categories.some((c) => c.id === m.categoryId))
+                      .map((item) => {
+                        const includedNames =
+                          item.productType === 'combo' && item.comboItemIds?.length
+                            ? item.comboItemIds
+                                .map((id) => menuItems.find((m) => m.id === id)?.name)
+                                .filter(Boolean) as string[]
+                            : []
+                        return (
+                          <div
+                            key={item.id}
+                            className="card-diamond group rounded-xl overflow-hidden transition-all duration-200 hover:shadow-[0_8px_30px_-8px_rgba(196,30,58,0.2)]"
+                          >
+                            {item.imageUrl && (
+                              <div className="relative h-44 overflow-hidden">
+                                <img
+                                  src={item.imageUrl}
+                                  alt=""
+                                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                />
+                              </div>
+                            )}
+                            <div className="p-4 sm:p-5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="font-semibold text-diamond">{item.name}</h4>
+                                {item.productType === 'combo' && (
+                                  <span className="text-xs font-medium px-2 py-0.5 rounded bg-crimson/15 text-crimson">Combo</span>
+                                )}
+                              </div>
+                              {includedNames.length > 0 && (
+                                <p className="mt-0.5 text-xs text-diamond-muted line-clamp-2">Includes: {includedNames.join(', ')}</p>
+                              )}
+                              {item.description && (
+                                <p className="mt-1.5 text-sm text-diamond-muted line-clamp-2">{item.description}</p>
+                              )}
+                              <p className="mt-3 text-lg font-semibold text-crimson">
+                                {item.halfTrayAvailable
+                                  ? `${formatPrice(item.price / 2)} half / ${formatPrice(item.price)} full`
+                                  : formatPrice(item.price)}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      })}
                   </div>
                 </div>
               )}

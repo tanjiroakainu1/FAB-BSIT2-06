@@ -1,6 +1,8 @@
-import { PageContainer } from '@shared/components'
+import { useState } from 'react'
+import { PageContainer, OrderDetailsModal } from '@shared/components'
 import { formatPrice } from '@shared/utils'
 import { useAuth, useAppData } from '@shared/context'
+import type { Order } from '@shared/types'
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString()
@@ -12,7 +14,10 @@ function formatLabel(s: string) {
 
 export default function OrderHistoryPage() {
   const { user } = useAuth()
-  const { orders } = useAppData()
+  const { orders, menuItems } = useAppData()
+  const [detailsOrder, setDetailsOrder] = useState<Order | null>(null)
+
+  const getImageUrl = (menuItemId: string) => menuItems.find((m) => m.id === menuItemId)?.imageUrl
 
   if (user?.type !== 'customer') {
     return null
@@ -45,7 +50,16 @@ export default function OrderHistoryPage() {
                   </span>
                   <p className="mt-0.5 text-sm text-diamond-muted">{formatDate(order.createdAt)}</p>
                 </div>
-                <span className="font-semibold text-crimson">{formatPrice(order.total)}</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-crimson">{formatPrice(order.total)}</span>
+                  <button
+                    type="button"
+                    onClick={() => setDetailsOrder(order)}
+                    className="rounded-lg border border-crimson/50 bg-crimson/10 px-3 py-2 text-sm font-medium text-crimson hover:bg-crimson/20 transition"
+                  >
+                    View details
+                  </button>
+                </div>
               </div>
               <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
                 <div>
@@ -80,13 +94,52 @@ export default function OrderHistoryPage() {
                   )}
                 </div>
               )}
-              <p className="mt-2 text-xs text-diamond-muted">
-                {order.items.map((i) => `${i.name} × ${i.quantity}`).join(', ')}
-              </p>
+              <div className="mt-3 border-t border-diamond-border pt-3">
+                <p className="text-xs font-medium text-diamond-muted mb-2">Items</p>
+                <ul className="space-y-2">
+                  {order.items.map((item, idx) => (
+                    <li
+                      key={`${item.menuItemId}-${item.traySize ?? 'full'}-${item.notes ?? ''}-${idx}`}
+                      className="flex items-center gap-3 rounded-lg border border-diamond-border bg-diamond-surface p-2"
+                    >
+                      <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md border border-diamond-border bg-diamond-card">
+                        {getImageUrl(item.menuItemId) ? (
+                          <img
+                            src={getImageUrl(item.menuItemId)}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-diamond-muted text-xs">—</div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="font-medium text-diamond text-sm">{item.name}</span>
+                        {(item.traySize === 'half' || item.notes) && (
+                          <span className="ml-1.5 text-xs text-diamond-muted">
+                            {item.traySize === 'half' && 'Half tray'}
+                            {item.traySize === 'half' && item.notes ? ' · ' : ''}
+                            {item.notes && item.notes}
+                          </span>
+                        )}
+                        <p className="text-xs text-diamond-muted mt-0.5">
+                          {formatPrice(item.price)} each × {item.quantity}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           ))}
         </div>
       )}
+
+      <OrderDetailsModal
+        order={detailsOrder}
+        menuItems={menuItems}
+        onClose={() => setDetailsOrder(null)}
+      />
     </PageContainer>
   )
 }

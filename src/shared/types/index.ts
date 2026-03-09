@@ -1,11 +1,21 @@
+/** Single item or combo/package that includes multiple meals. */
+export type ProductType = 'single' | 'combo'
+
 export interface MenuItem {
   id: string
   name: string
   description: string
+  /** Full tray price. If halfTrayAvailable, half tray = price/2. */
   price: number
   imageUrl?: string
   categoryId: string
   available: boolean
+  /** If true, customer can choose half tray (half price) or full tray. */
+  halfTrayAvailable?: boolean
+  /** Single meal or combo/package of multiple meals. Default 'single'. */
+  productType?: ProductType
+  /** For combo/package: menu item IDs included in this product. */
+  comboItemIds?: string[]
 }
 
 export interface Category {
@@ -19,6 +29,9 @@ export interface OrderItem {
   name: string
   quantity: number
   price: number
+  traySize?: 'half' | 'full'
+  /** Add-on or special instructions for this line. */
+  notes?: string
 }
 
 export type PaymentMethod = 'cash' | 'gcash'
@@ -52,6 +65,16 @@ export interface Order {
   calledStatus?: CalledStatus
   /** Admin-only: kitchen status (pending | completed). */
   kitchenStatus?: KitchenStatus
+  /** Order-level notes (e.g. add-on packages, special requests). */
+  orderNotes?: string
+  /** Cash/GCash reference number submitted by customer. */
+  paymentReference?: string
+  /** Customer's GCash mobile number (when payment is GCash). */
+  gcashMobileNumber?: string
+  /** When the customer needs this order (date, YYYY-MM-DD). */
+  needByDate?: string
+  /** When the customer needs this order (time, HH:mm). */
+  needByTime?: string
 }
 
 export type OrderStatus = Order['status']

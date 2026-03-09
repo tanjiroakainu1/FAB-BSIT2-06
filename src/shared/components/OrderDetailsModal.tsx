@@ -69,11 +69,33 @@ export function OrderDetailsModal({ order, menuItems, onClose }: OrderDetailsMod
                 <p className="text-diamond">{order.eventType}</p>
               </div>
             )}
+            {(order.needByDate || order.needByTime) && (
+              <div>
+                <span className="text-diamond-muted">In need of this order</span>
+                <p className="text-diamond">
+                  {order.needByDate && order.needByTime
+                    ? `${order.needByDate} at ${order.needByTime}`
+                    : order.needByDate || order.needByTime || '—'}
+                </p>
+              </div>
+            )}
             <div>
               <span className="text-diamond-muted">Payment</span>
               <p className="text-diamond capitalize">{order.paymentMethod ?? 'cash'}</p>
               <p className="text-diamond-muted capitalize">{order.paymentStatus ?? 'pending'}</p>
+              {order.paymentReference && (
+                <p className="text-diamond-muted text-xs mt-0.5">Ref: {order.paymentReference}</p>
+              )}
+              {order.gcashMobileNumber && (
+                <p className="text-diamond-muted text-xs mt-0.5">GCash: {order.gcashMobileNumber}</p>
+              )}
             </div>
+            {order.orderNotes && (
+              <div className="sm:col-span-2">
+                <span className="text-diamond-muted">Order notes</span>
+                <p className="text-diamond text-sm">{order.orderNotes}</p>
+              </div>
+            )}
             <div>
               <span className="text-diamond-muted">Delivery</span>
               <p className="text-diamond capitalize">{order.deliveryOption ?? 'delivery'}</p>
@@ -106,6 +128,13 @@ export function OrderDetailsModal({ order, menuItems, onClose }: OrderDetailsMod
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-diamond">{item.name}</p>
+                      {(item.traySize === 'half' || item.notes) && (
+                        <p className="text-xs text-diamond-muted">
+                          {item.traySize === 'half' && 'Half tray'}
+                          {item.traySize === 'half' && item.notes ? ' · ' : ''}
+                          {item.notes && item.notes}
+                        </p>
+                      )}
                       <p className="text-sm text-diamond-muted">
                         {item.quantity} × {formatPrice(item.price)} = {formatPrice(item.quantity * item.price)}
                       </p>

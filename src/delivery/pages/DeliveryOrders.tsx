@@ -15,17 +15,27 @@ export default function DeliveryOrders() {
   const [search, setSearch] = useState('')
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null)
 
+  const activeOrders = useMemo(
+    () =>
+      orders.filter(
+        (o) =>
+          (o.deliveryStatus ?? 'pending') === 'pending' ||
+          o.deliveryStatus === 'out_for_delivery'
+      ),
+    [orders]
+  )
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return orders
-    return orders.filter(
+    if (!q) return activeOrders
+    return activeOrders.filter(
       (o) =>
         o.id.toLowerCase().includes(q) ||
         o.customerName.toLowerCase().includes(q) ||
         (o.deliveryAddress && o.deliveryAddress.toLowerCase().includes(q)) ||
         (o.contactNumber && o.contactNumber.toLowerCase().includes(q))
     )
-  }, [orders, search])
+  }, [activeOrders, search])
 
   const handleDeliveryStatusChange = (orderId: string, status: DeliveryStatus) => {
     updateOrderDeliveryStatus(orderId, status)
@@ -36,9 +46,10 @@ export default function DeliveryOrders() {
     return d.toLocaleString()
   }
 
-  const pendingDelivery = orders.filter((o) =>
-    ['pending', 'out_for_delivery'].includes(o.deliveryStatus ?? 'pending')
-  ).length
+  const handleMarkDone = (order: Order) => {
+    const status = order.deliveryOption === 'pickup' ? 'picked_up' : 'delivered'
+    updateOrderDeliveryStatus(order.id, status)
+  }
 
   return (
     <PageContainer className="pb-12">
@@ -52,7 +63,7 @@ export default function DeliveryOrders() {
         </div>
         <div className="card-diamond rounded-xl px-4 py-2 text-center">
           <span className="text-xs font-medium text-diamond-muted">Active</span>
-          <p className="text-xl font-bold text-crimson">{pendingDelivery}</p>
+          <p className="text-xl font-bold text-crimson">{activeOrders.length}</p>
         </div>
       </div>
 
@@ -74,7 +85,7 @@ export default function DeliveryOrders() {
       <div className="card-diamond mt-6 overflow-hidden rounded-xl -mx-3 sm:mx-0">
         {filtered.length === 0 ? (
           <div className="p-6 sm:p-10 text-center text-diamond-muted text-sm sm:text-base">
-            {orders.length === 0 ? 'No orders yet.' : 'No orders match your search.'}
+            {activeOrders.length === 0 ? 'No active deliveries. Mark orders as done to move them to History.' : 'No orders match your search.'}
           </div>
         ) : (
           <div className="overflow-x-auto overflow-y-visible" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -86,8 +97,9 @@ export default function DeliveryOrders() {
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Address / Contact</th>
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Date</th>
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Type</th>
-                  <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Delivery status</th>
+                  <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Status</th>
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Details</th>
+                  <th className="px-2 sm:px-4 py-3 text-right text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Done</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-diamond-border bg-diamond-card">
@@ -126,9 +138,18 @@ export default function DeliveryOrders() {
                       <button
                         type="button"
                         onClick={() => setDetailsOrder(order)}
-                        className="rounded bg-crimson/10 px-2.5 py-2 sm:py-1 text-xs font-medium text-crimson hover:bg-crimson/20 focus:outline-none focus:ring-2 focus:ring-crimson focus:ring-offset-1 min-h-[44px] sm:min-h-0 touch-manipulation"
+                        className="rounded bg-crimson/10 px-2.5 py-2 sm:py-1 text-xs font-medium text-crimson hover:bg-crimson/20 min-h-[44px] sm:min-h-0 touch-manipulation"
                       >
                         View details
+                      </button>
+                    </td>
+                    <td className="px-2 sm:px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleMarkDone(order)}
+                        className="rounded bg-green-600 px-3 py-2 sm:py-1.5 text-xs font-medium text-white hover:bg-green-700 min-h-[44px] sm:min-h-0 touch-manipulation"
+                      >
+                        Done
                       </button>
                     </td>
                   </tr>

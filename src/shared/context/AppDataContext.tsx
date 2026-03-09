@@ -55,6 +55,7 @@ const SEED_CATEGORIES: Category[] = [
   { id: 'seed-cat-2', name: 'Drinks', slug: 'drinks' },
   { id: 'seed-cat-3', name: 'Desserts', slug: 'desserts' },
   { id: 'seed-cat-4', name: 'Snacks', slug: 'snacks' },
+  { id: 'seed-cat-combo', name: 'Combo & Package Meals', slug: 'combo-package-meals' },
 ]
 
 // Open-source food images (Unsplash, free to use – https://unsplash.com/license)
@@ -73,6 +74,7 @@ const SEED_MENU_ITEMS: MenuItem[] = [
   { id: 'seed-item-10', name: 'Turon', description: 'Fried banana spring rolls with caramel.', price: 49, categoryId: 'seed-cat-3', available: true, imageUrl: U('1603833664338-1a2c0b5e1a19') },
   { id: 'seed-item-11', name: 'Lumpia', description: 'Crispy vegetable spring rolls (2 pcs).', price: 59, categoryId: 'seed-cat-4', available: true, imageUrl: U('1601050690597-df0568f70950') },
   { id: 'seed-item-12', name: 'Chicharon', description: 'Crispy pork rinds with vinegar dip.', price: 75, categoryId: 'seed-cat-4', available: true, imageUrl: U('1559847844-5315695dadae') },
+  { id: 'seed-item-combo-1', name: 'Family Combo', description: 'Chicken Adobo, Pancit Canton, and Iced Calamansi — perfect for sharing.', price: 249, categoryId: 'seed-cat-combo', available: true, imageUrl: U('1603360946369-dc9bbf580ab5'), productType: 'combo', comboItemIds: ['seed-item-1', 'seed-item-2', 'seed-item-5'], halfTrayAvailable: true },
 ]
 
 const seedData: StoredData = {
@@ -95,6 +97,11 @@ function migrateOrder(o: unknown): Order {
     deliveryStatus: order.deliveryStatus ?? 'pending',
     calledStatus: order.calledStatus ?? 'pending',
     kitchenStatus: order.kitchenStatus ?? 'pending',
+    orderNotes: order.orderNotes,
+    paymentReference: order.paymentReference,
+    gcashMobileNumber: order.gcashMobileNumber,
+    needByDate: order.needByDate,
+    needByTime: order.needByTime,
   }
 }
 
@@ -103,9 +110,13 @@ const SEED_IMAGE_BY_ID: Record<string, string> = Object.fromEntries(
 )
 
 function migrateMenuItem(item: MenuItem): MenuItem {
-  if (item.imageUrl) return item
-  const seedImage = SEED_IMAGE_BY_ID[item.id]
-  return seedImage ? { ...item, imageUrl: seedImage } : item
+  const withImage = item.imageUrl ? item : (() => {
+    const seedImage = SEED_IMAGE_BY_ID[item.id]
+    return seedImage ? { ...item, imageUrl: seedImage } : item
+  })()
+  const productType = withImage.productType ?? 'single'
+  const comboItemIds = Array.isArray(withImage.comboItemIds) ? withImage.comboItemIds : []
+  return { ...withImage, halfTrayAvailable: withImage.halfTrayAvailable ?? false, productType, comboItemIds }
 }
 
 function loadData(): StoredData {

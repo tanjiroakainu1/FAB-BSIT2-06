@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { PageContainer } from '@shared/components'
 import { formatPrice } from '@shared/utils'
 import { useAppData } from '@shared/context'
-import type { MenuItem } from '@shared/types'
+import type { MenuItem, ProductType } from '@shared/types'
 
 const emptyForm = {
   name: '',
@@ -10,7 +10,10 @@ const emptyForm = {
   price: '',
   categoryId: '',
   available: true,
+  halfTrayAvailable: false,
   imageUrl: '' as string,
+  productType: 'single' as ProductType,
+  comboItemIds: [] as string[],
 }
 
 export default function AdminProducts() {
@@ -38,7 +41,10 @@ export default function AdminProducts() {
       price,
       categoryId,
       available: form.available,
+      halfTrayAvailable: form.halfTrayAvailable,
       imageUrl: form.imageUrl || undefined,
+      productType: form.productType,
+      comboItemIds: form.productType === 'combo' ? form.comboItemIds : undefined,
     })
     resetForm()
   }
@@ -51,7 +57,10 @@ export default function AdminProducts() {
       price: String(item.price),
       categoryId: item.categoryId,
       available: item.available,
+      halfTrayAvailable: item.halfTrayAvailable ?? false,
       imageUrl: item.imageUrl ?? '',
+      productType: item.productType ?? 'single',
+      comboItemIds: item.productType === 'combo' && Array.isArray(item.comboItemIds) ? [...item.comboItemIds] : [],
     })
     setShowForm(true)
   }
@@ -70,7 +79,10 @@ export default function AdminProducts() {
       price,
       categoryId,
       available: form.available,
+      halfTrayAvailable: form.halfTrayAvailable,
       imageUrl: form.imageUrl || undefined,
+      productType: form.productType,
+      comboItemIds: form.productType === 'combo' ? form.comboItemIds : undefined,
     })
     resetForm()
   }
@@ -91,6 +103,16 @@ export default function AdminProducts() {
   }
 
   const clearImage = () => setForm((f) => ({ ...f, imageUrl: '' }))
+
+  /** Menu items that can be included in a combo (exclude current when editing). */
+  const selectableForCombo = menuItems.filter((m) => m.id !== editing?.id)
+
+  const toggleComboItem = (id: string) => {
+    setForm((f) => ({
+      ...f,
+      comboItemIds: f.comboItemIds.includes(id) ? f.comboItemIds.filter((x) => x !== id) : [...f.comboItemIds, id],
+    }))
+  }
 
   return (
     <PageContainer>
@@ -138,8 +160,85 @@ export default function AdminProducts() {
                 ))}
               </select>
             </div>
+            <div className="sm:col-span-2">
+              <span className="block text-sm font-medium text-diamond-muted">Product type</span>
+              <div className="mt-2 flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="productType"
+                    checked={form.productType === 'single'}
+                    onChange={() => setForm((f) => ({ ...f, productType: 'single', comboItemIds: [] }))}
+                    className="text-crimson focus:ring-crimson"
+                  />
+                  <span className="text-diamond">Single meal</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="productType"
+                    checked={form.productType === 'combo'}
+                    onChange={() => setForm((f) => ({ ...f, productType: 'combo' }))}
+                    className="text-crimson focus:ring-crimson"
+                  />
+                  <span className="text-diamond">Combo / Package meal</span>
+                </label>
+              </div>
+              {form.productType === 'combo' && (
+                <p className="mt-1 text-xs text-diamond-muted">Select the meals included in this combo. Customer can order full or half tray (half = 50% of price).</p>
+              )}
+            </div>
+            {form.productType === 'combo' && (
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-diamond-muted">Included meals</label>
+                <div className="mt-2 max-h-48 overflow-y-auto rounded border border-diamond-border bg-diamond-surface p-3 space-y-2">
+                  {categories.map((cat) => {
+                    const itemsInCat = selectableForCombo.filter((m) => m.categoryId === cat.id)
+                    if (itemsInCat.length === 0) return null
+                    return (
+                      <div key={cat.id}>
+                        <p className="text-xs font-semibold text-diamond-muted mb-1">{cat.name}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {itemsInCat.map((m) => (
+                            <label key={m.id} className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={form.comboItemIds.includes(m.id)}
+                                onChange={() => toggleComboItem(m.id)}
+                                className="rounded border-diamond-border text-crimson focus:ring-crimson"
+                              />
+                              <span className="text-sm text-diamond">{m.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {selectableForCombo.some((m) => !categories.some((c) => c.id === m.categoryId)) && (
+                    <div>
+                      <p className="text-xs font-semibold text-diamond-muted mb-1">Other</p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectableForCombo
+                          .filter((m) => !categories.some((c) => c.id === m.categoryId))
+                          .map((m) => (
+                            <label key={m.id} className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={form.comboItemIds.includes(m.id)}
+                                onChange={() => toggleComboItem(m.id)}
+                                className="rounded border-diamond-border text-crimson focus:ring-crimson"
+                              />
+                              <span className="text-sm text-diamond">{m.name}</span>
+                            </label>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             <div>
-              <label className="block text-sm font-medium text-diamond-muted">Price (₱)</label>
+              <label className="block text-sm font-medium text-diamond-muted">Full tray price (₱)</label>
               <input
                 type="number"
                 step="0.01"
@@ -149,6 +248,9 @@ export default function AdminProducts() {
                 className="mt-1 w-full rounded border border-diamond-border px-3 py-2 text-diamond"
                 required
               />
+              {form.halfTrayAvailable && (
+                <p className="mt-1 text-xs text-diamond-muted">Half tray = half of this price.</p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <input
@@ -160,6 +262,18 @@ export default function AdminProducts() {
               />
               <label htmlFor="available" className="text-sm text-diamond-muted">
                 Available
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="halfTrayAvailable"
+                checked={form.halfTrayAvailable}
+                onChange={(e) => setForm((f) => ({ ...f, halfTrayAvailable: e.target.checked }))}
+                className="rounded border-diamond-border text-crimson focus:ring-diamond-surface0"
+              />
+              <label htmlFor="halfTrayAvailable" className="text-sm text-diamond-muted">
+                Offer half tray (customer can choose half or full; half = 50% of full price)
               </label>
             </div>
             <div className="sm:col-span-2">
@@ -224,6 +338,7 @@ export default function AdminProducts() {
             <tr>
               <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Image</th>
               <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Name</th>
+              <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Type</th>
               <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Category</th>
               <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Price</th>
               <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Available</th>
@@ -233,7 +348,7 @@ export default function AdminProducts() {
           <tbody className="divide-y divide-diamond-border bg-diamond-card">
             {menuItems.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-diamond-muted">
+                <td colSpan={7} className="px-4 py-8 text-center text-diamond-muted">
                   No products yet. Add categories first, then add products.
                 </td>
               </tr>
@@ -252,6 +367,11 @@ export default function AdminProducts() {
                     )}
                   </td>
                   <td className="px-4 py-3 font-medium text-diamond">{item.name}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded ${item.productType === 'combo' ? 'bg-crimson/15 text-crimson' : 'bg-diamond-surface text-diamond-muted'}`}>
+                      {item.productType === 'combo' ? 'Combo' : 'Single'}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-diamond-muted">{categoryName(item.categoryId)}</td>
                   <td className="px-4 py-3 text-diamond-muted">{formatPrice(item.price)}</td>
                   <td className="px-4 py-3">{item.available ? 'Yes' : 'No'}</td>

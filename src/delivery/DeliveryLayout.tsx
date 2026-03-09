@@ -4,6 +4,7 @@ import { useAuth } from '@shared/context'
 
 const navItems = [
   { to: '/delivery', end: true, label: 'Deliveries' },
+  { to: '/delivery/history', end: false, label: 'History' },
   { to: '/delivery/chat', end: false, label: 'Chat' },
 ]
 

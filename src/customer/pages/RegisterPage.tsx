@@ -10,6 +10,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [showSuccess, setShowSuccess] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,14 +21,43 @@ export default function RegisterPage() {
     }
     const result = await registerCustomer(email.trim(), password, name.trim())
     if (result.ok) {
-      navigate('/login')
+      setShowSuccess(true)
     } else {
       setError(result.error ?? 'Registration failed')
     }
   }
 
+  const handleSuccessDismiss = () => {
+    setShowSuccess(false)
+    navigate('/login')
+  }
+
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-transparent">
+      {showSuccess && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+          role="dialog"
+          aria-modal="true"
+          aria-live="polite"
+          aria-label="Registration success"
+        >
+          <div className="rounded-xl bg-green-600 text-white shadow-2xl max-w-sm w-full p-6 text-center">
+            <div className="flex justify-center mb-3" aria-hidden>
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-2xl">✓</span>
+            </div>
+            <p className="text-lg font-semibold">You have successfully registered.</p>
+            <p className="mt-1 text-sm text-white/90">You can now log in with your account.</p>
+            <button
+              type="button"
+              onClick={handleSuccessDismiss}
+              className="mt-5 w-full rounded-lg bg-white/20 px-4 py-2.5 font-medium text-white hover:bg-white/30 transition"
+            >
+              Continue to login
+            </button>
+          </div>
+        </div>
+      )}
       <PageContainer className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center py-12">
         <div className="w-full max-w-md">
           <div className="card-diamond overflow-hidden rounded-2xl shadow-xl">

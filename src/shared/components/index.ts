@@ -6,3 +6,4 @@ export { PieChart, ColumnChart, LineChart, BarChart, AreaChart, ColumnLineChart,
 export { CommunityChat } from './CommunityChat'
 export { TeamCreditsFooter } from './TeamCreditsFooter'
 export { OrderDetailsModal } from './OrderDetailsModal'
+export { ProductRecommendationsAndAddons } from './ProductRecommendationsAndAddons'
