@@ -28,7 +28,7 @@ function init() {
  */
 export async function sendOtpEmail(toEmail: string, otp: string): Promise<{ ok: boolean; error?: string }> {
   if (!PUBLIC_KEY || !SERVICE_ID || !TEMPLATE_ID) {
-    return { ok: false, error: 'Email verification is not configured. Use the demo account to log in: customer@gmail.com / customer123.' }
+    return { ok: false, error: 'OTP is configured for private use. Use the demo account to log in: customer@gmail.com / customer123.' }
   }
   const recipient = toEmail.trim().toLowerCase()
   if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
@@ -54,6 +54,6 @@ export async function sendOtpEmail(toEmail: string, otp: string): Promise<{ ok: 
     }
     return { ok: true }
   } catch {
-    return { ok: false, error: 'Email could not be sent. Please try again or use the demo account: customer@gmail.com / customer123.' }
+    return { ok: false, error: 'OTP is for private use. Use the demo account to log in: customer@gmail.com / customer123.' }
   }
 }

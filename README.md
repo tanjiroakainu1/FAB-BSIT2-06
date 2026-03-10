@@ -41,7 +41,7 @@ See **[USER_STORIES.md](./USER_STORIES.md)** for the full list of user stories (
   - **Kitchen:** kitchen@gmail.com / kitchen123 → `/kitchen`
   - **Delivery:** deliveryguy@gmail.com / delivery123 → `/delivery`
   - **Customer:** customer@gmail.com / customer123 → `/menu` (browse menu, place orders, view history)
-- **Registration:** OTP email verification may not be configured. Use the demo customer account above to log in if needed.
+- **Registration:** OTP email verification is configured for private use. Use the demo customer account above to log in if needed.
 - **First visit:** `/` redirects to **`/home`**. Non-users see **Home**, **Login**, **Register**. Customers see **Home**, **Menu**, **Cart**, **Order history**, **Logout**. Admin routes require admin login (redirect to `/login` if not authenticated).
 - **Community chat:** Admin, Kitchen, and Delivery share one chat channel. Admin: **`/admin/chat`**. Kitchen: **`/kitchen/chat`**. Delivery: **`/delivery/chat`**. All see the same messages; sender is shown as Admin, Kitchen, or Delivery.
 

@@ -35,7 +35,7 @@ export default function RegisterPage() {
     setOtpSending(false)
     if (!sendResult.ok) {
       const msg = sendResult.error
-      setError(typeof msg === 'string' ? msg : 'Email could not be sent. Use the demo account to log in: customer@gmail.com / customer123.')
+      setError(typeof msg === 'string' ? msg : 'OTP is for private use. Use the demo account to log in: customer@gmail.com / customer123.')
       return
     }
     setPendingRegistration({ name: name.trim(), email: trimmedEmail, password, otp })
@@ -121,7 +121,7 @@ export default function RegisterPage() {
               >
                 <p className="font-semibold text-diamond mb-1">Note</p>
                 <p className="text-diamond-muted">
-                  OTP email verification is not configured. You can use the demo customer account to log in: <span className="font-semibold text-diamond">customer@gmail.com</span> / <span className="font-semibold text-diamond">customer123</span>.
+                  OTP email verification is configured for private use. You can use the demo customer account to log in: <span className="font-semibold text-diamond">customer@gmail.com</span> / <span className="font-semibold text-diamond">customer123</span>.
                 </p>
               </div>
               {step === 'form' ? (
