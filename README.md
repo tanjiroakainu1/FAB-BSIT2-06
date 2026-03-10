@@ -1,6 +1,6 @@
 # Food Ordering Hermanas
 
-Standalone TypeScript + React + Tailwind food ordering app with **Admin**, **Kitchen**, **Delivery**, and **Customer** areas. All data is stored in the browser (localStorage)—no backend or database required.
+TypeScript + React + Tailwind food ordering app with **Admin**, **Kitchen**, **Delivery**, and **Customer** areas. **Standalone:** all data is stored in **localStorage** (no backend, no database). Deploy to **Vercel** as a static SPA.
 
 ## Development team
 
@@ -25,15 +25,23 @@ See **[USER_STORIES.md](./USER_STORIES.md)** for the full list of user stories (
    npm install
    npm run dev
    ```
-2. Open the app in your browser (e.g. http://localhost:5173). Data persists in localStorage for the current browser.
+2. Open the app in your browser (e.g. http://localhost:5173). Data persists in **localStorage** in the current browser.
+
+## Deploy on Vercel
+
+1. Push the repo to GitHub and import the project in [Vercel](https://vercel.com).
+2. Vercel will detect Vite; build command `npm run build` and output directory `dist` are used by default.
+3. `vercel.json` is set up so all routes rewrite to `index.html` for client-side routing.
+4. No environment variables are required for basic run.
 
 ## Auth & navigation
 
-- **Single login** at **`/login`** for all roles:
+- **Single login** at **`/login`** for all roles. Demo accounts (use “Use this account” on the login page):
   - **Admin:** admin@gmail.com / admin123 → `/admin`
   - **Kitchen:** kitchen@gmail.com / kitchen123 → `/kitchen`
-  - **Delivery:** deliveryguy@gmail.com / deliveryguy123 → `/delivery`
-  - **Customer:** register at `/register` or use an account created by Admin in User management.
+  - **Delivery:** deliveryguy@gmail.com / delivery123 → `/delivery`
+  - **Customer:** customer@gmail.com / customer123 → `/menu` (browse menu, place orders, view history)
+- **Registration:** OTP email verification may not be configured. Use the demo customer account above to log in if needed.
 - **First visit:** `/` redirects to **`/home`**. Non-users see **Home**, **Login**, **Register**. Customers see **Home**, **Menu**, **Cart**, **Order history**, **Logout**. Admin routes require admin login (redirect to `/login` if not authenticated).
 - **Community chat:** Admin, Kitchen, and Delivery share one chat channel. Admin: **`/admin/chat`**. Kitchen: **`/kitchen/chat`**. Delivery: **`/delivery/chat`**. All see the same messages; sender is shown as Admin, Kitchen, or Delivery.
 
@@ -43,6 +51,7 @@ See **[USER_STORIES.md](./USER_STORIES.md)** for the full list of user stories (
 - **Vite** for build and dev server
 - **Tailwind CSS v4**
 - **React Router v6**
+- **Data:** localStorage only (no backend, no database)
 - **Theme:** White background with red diamond accents; floating red diamond particles and subtle effects (see `src/index.css` and `ParticlesBackground`).
 - **Currency:** Philippine Peso (₱) — all prices use `formatPrice()` from `@shared/utils`.
 - **Seed data:** On first load (or empty storage), the app loads sample categories and menu items (e.g. Chicken Adobo, Halo-Halo, Lumpia) with open-source product images (Unsplash). All data is stored in localStorage.
@@ -55,48 +64,24 @@ src/
 │   ├── AdminLayout.tsx
 │   ├── routes.tsx
 │   └── pages/
-│       ├── AdminDashboard.tsx
-│       ├── AdminCategories.tsx
-│       ├── AdminProducts.tsx
-│       ├── AdminOrders.tsx
-│       ├── AdminUserManagement.tsx
-│       └── AdminChat.tsx
-│   └── system-charts/
 ├── kitchen/
 │   ├── KitchenLayout.tsx
 │   ├── routes.tsx
-│   ├── pages/
-│   │   ├── KitchenOrders.tsx
-│   │   └── KitchenChat.tsx
-│   └── system-charts/
+│   └── pages/
 ├── delivery/
 │   ├── DeliveryLayout.tsx
 │   ├── routes.tsx
-│   ├── pages/
-│   │   ├── DeliveryOrders.tsx
-│   │   └── DeliveryChat.tsx
-│   └── system-charts/
+│   └── pages/
 ├── customer/
 │   ├── CustomerLayout.tsx
 │   ├── routes.tsx
 │   └── pages/
-│       ├── HomePage.tsx
-│       ├── MenuPage.tsx
-│       ├── CartPage.tsx
-│       ├── CheckoutPage.tsx
-│       ├── LoginPage.tsx
-│       └── RegisterPage.tsx
-│   └── system-charts/
 ├── shared/
 │   ├── constants/
-│   │   └── team.ts
-│   ├── types/index.ts
+│   ├── types/
 │   ├── utils/
-│   ├── context/
-│   │   ├── AuthContext.tsx
-│   │   ├── AppDataContext.tsx
-│   │   ├── CartContext.tsx
-│   │   └── index.ts
+│   ├── context/   (Auth, AppData, Cart — all use localStorage)
+│   ├── api/       (client stub; no backend)
 │   └── components/
 ├── App.tsx
 ├── main.tsx
@@ -122,7 +107,7 @@ src/
 - **Category management** (`/admin/categories`): Add, edit, and delete categories.
 - **Product management** (`/admin/products`): Add, edit, delete products; set **available** or **not available**.
 - **Orders** (`/admin/orders`): View all orders (search by ID, customer name, email). Update order status, payment status, and delivery status.
-- **User management** (`/admin/users`): Add Kitchen and Delivery users (stored locally). These users can log in with the credentials you set.
+- **User management** (`/admin/users`): Add Kitchen and Delivery users (stored in localStorage). These users can log in with the credentials you set.
 
 ## Customer checkout
 
@@ -134,4 +119,4 @@ src/
 - **Public:** `/home`, `/login`, `/register`.
 - **Customer (login required):** `/menu`, `/cart`, `/checkout`, `/orders`, `/system-charts`.
 - **Admin (login required):** `/admin`, `/admin/categories`, `/admin/products`, `/admin/orders`, `/admin/users`, `/admin/chat`, `/admin/system-charts`.
-- **Kitchen / Delivery:** `/kitchen/system-charts`, `/delivery/system-charts` (System Charts page for each role).
+- **Kitchen / Delivery:** `/kitchen`, `/delivery`, and their system-charts and chat routes.

@@ -1,17 +1,14 @@
 import { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth, ROLE_LOGIN_GUIDE } from '@shared/context'
 import { PageContainer } from '@shared/components'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const location = useLocation()
   const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-
-  const from = (location.state as { from?: string } | null)?.from ?? '/menu'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,7 +26,7 @@ export default function LoginPage() {
       } else if (loggedInUser.type === 'deliveryguy') {
         navigate('/delivery', { replace: true })
       } else {
-        navigate(from, { replace: true })
+        navigate('/menu', { replace: true })
       }
     } else {
       setError('Invalid email or password')

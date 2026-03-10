@@ -15,12 +15,13 @@ export default function DeliveryOrders() {
   const [search, setSearch] = useState('')
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null)
 
+  /** Orders appear here only after Kitchen has approved (kitchen_status = completed). Then Delivery can update status or mark Done. */
   const activeOrders = useMemo(
     () =>
       orders.filter(
         (o) =>
-          (o.deliveryStatus ?? 'pending') === 'pending' ||
-          o.deliveryStatus === 'out_for_delivery'
+          (o.kitchenStatus ?? 'pending') === 'completed' &&
+          ((o.deliveryStatus ?? 'pending') === 'pending' || o.deliveryStatus === 'out_for_delivery')
       ),
     [orders]
   )
@@ -59,7 +60,7 @@ export default function DeliveryOrders() {
             <h1 className="text-2xl font-bold text-diamond sm:text-3xl">Delivery</h1>
             <span className="h-px flex-1 max-w-[60px] bg-gradient-to-r from-crimson/60 to-transparent" aria-hidden />
           </div>
-          <p className="mt-2 text-diamond-muted">Update delivery status for each order.</p>
+          <p className="mt-2 text-diamond-muted">Orders appear here only after Kitchen has approved them. Mark as Done to move to History.</p>
         </div>
         <div className="card-diamond rounded-xl px-4 py-2 text-center">
           <span className="text-xs font-medium text-diamond-muted">Active</span>
@@ -85,7 +86,7 @@ export default function DeliveryOrders() {
       <div className="card-diamond mt-6 overflow-hidden rounded-xl -mx-3 sm:mx-0">
         {filtered.length === 0 ? (
           <div className="p-6 sm:p-10 text-center text-diamond-muted text-sm sm:text-base">
-            {activeOrders.length === 0 ? 'No active deliveries. Mark orders as done to move them to History.' : 'No orders match your search.'}
+            {activeOrders.length === 0 ? 'No orders ready for delivery yet. Orders appear here after Kitchen approves them.' : 'No orders match your search.'}
           </div>
         ) : (
           <div className="overflow-x-auto overflow-y-visible" style={{ WebkitOverflowScrolling: 'touch' }}>

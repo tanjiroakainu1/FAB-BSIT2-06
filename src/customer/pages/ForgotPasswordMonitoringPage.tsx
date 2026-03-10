@@ -35,9 +35,9 @@ export default function ForgotPasswordMonitoringPage() {
         return
       }
       const reader = new FileReader()
-      reader.onload = () => {
+      reader.onload = async () => {
         const dataUrl = reader.result as string
-        const res = submitProofAndGetStatus(email, dataUrl, file.name)
+        const res = await submitProofAndGetStatus(email, dataUrl, file.name)
         if (res.ok) {
           setMonitorSuccess(true)
           setCheckedEmail(email.toLowerCase())
@@ -54,11 +54,11 @@ export default function ForgotPasswordMonitoringPage() {
     }
   }
 
-  const handleChangePasswordSubmit = (e: React.FormEvent) => {
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setChangePasswordError(null)
     if (!checkedEmail) return
-    const res = setPasswordAfterApproval(checkedEmail, newPassword)
+    const res = await setPasswordAfterApproval(checkedEmail, newPassword)
     if (res.ok) {
       setChangePasswordSuccess(true)
       setNewPassword('')

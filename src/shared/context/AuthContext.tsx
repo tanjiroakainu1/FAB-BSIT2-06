@@ -6,19 +6,21 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-
 const ADMIN_EMAIL = 'admin@gmail.com'
 const ADMIN_PASSWORD = 'admin123'
 const KITCHEN_EMAIL = 'kitchen@gmail.com'
 const KITCHEN_PASSWORD = 'kitchen123'
 const DELIVERYGUY_EMAIL = 'deliveryguy@gmail.com'
 const DELIVERYGUY_PASSWORD = 'delivery123'
+const CUSTOMER_EMAIL = 'customer@gmail.com'
+const CUSTOMER_PASSWORD = 'customer123'
 
 /** Role-based demo accounts for the login page guide. Single source of truth for credentials. */
 export const ROLE_LOGIN_GUIDE = [
   { role: 'Admin', email: ADMIN_EMAIL, password: ADMIN_PASSWORD, description: 'Manage categories, products, orders & users' },
   { role: 'Kitchen', email: KITCHEN_EMAIL, password: KITCHEN_PASSWORD, description: 'View orders & update kitchen status' },
   { role: 'Delivery', email: DELIVERYGUY_EMAIL, password: DELIVERYGUY_PASSWORD, description: 'View orders & update delivery status' },
+  { role: 'Customer', email: CUSTOMER_EMAIL, password: CUSTOMER_PASSWORD, description: 'Browse menu, place orders & view history' },
 ] as const
 
 /** System (built-in) accounts shown in User Management. */
@@ -26,6 +28,7 @@ export const SYSTEM_ACCOUNTS = [
   { role: 'admin' as const, email: ADMIN_EMAIL, name: 'Admin' },
   { role: 'kitchen' as const, email: KITCHEN_EMAIL, name: 'Kitchen' },
   { role: 'deliveryguy' as const, email: DELIVERYGUY_EMAIL, name: 'Delivery' },
+  { role: 'customer' as const, email: CUSTOMER_EMAIL, name: 'Customer' },
 ]
 
 const CUSTOMERS_KEY = 'food-ordering-customers'
@@ -66,15 +69,17 @@ interface AuthContextValue {
   registerCustomer: (email: string, password: string, name: string) => Promise<{ ok: boolean; error?: string }>
   logout: () => void
   staffUsers: StoredStaffUser[]
-  addStaffUser: (data: { email: string; password: string; name: string; role: 'customer' | 'kitchen' | 'deliveryguy' }) => void
+  /** Registered customers (from /register with OTP). No passwords exposed. */
+  customers: { id: string; email: string; name: string; createdAt: string }[]
+  addStaffUser: (data: { email: string; password: string; name: string; role: 'customer' | 'kitchen' | 'deliveryguy' }) => void | Promise<void>
   forgotPasswordRequests: ForgotPasswordRequest[]
-  addForgotPasswordRequest: (email: string, proofDataUrl?: string, proofFileName?: string) => { ok: boolean; error?: string }
-  submitProofAndGetStatus: (email: string, proofDataUrl: string, proofFileName?: string) => { ok: boolean; error?: string }
+  addForgotPasswordRequest: (email: string, proofDataUrl?: string, proofFileName?: string) => { ok: boolean; error?: string } | Promise<{ ok: boolean; error?: string }>
+  submitProofAndGetStatus: (email: string, proofDataUrl: string, proofFileName?: string) => { ok: boolean; error?: string } | Promise<{ ok: boolean; error?: string }>
   getRequestsByEmail: (email: string) => ForgotPasswordRequest[]
-  approveForgotPasswordRequest: (id: string) => { ok: boolean; error?: string }
-  rejectForgotPasswordRequest: (id: string) => void
+  approveForgotPasswordRequest: (id: string) => { ok: boolean; error?: string } | Promise<{ ok: boolean; error?: string }>
+  rejectForgotPasswordRequest: (id: string) => void | Promise<void>
   /** For non-users on monitoring page: set new password when request is already approved. */
-  setPasswordAfterApproval: (email: string, newPassword: string) => { ok: boolean; error?: string }
+  setPasswordAfterApproval: (email: string, newPassword: string) => { ok: boolean; error?: string } | Promise<{ ok: boolean; error?: string }>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -84,6 +89,8 @@ interface StoredCustomer {
   email: string
   password: string
   name: string
+  /** Set when customer registers (after OTP). Older records may lack this. */
+  createdAt?: string
 }
 
 function loadStoredAuth(): User {
@@ -182,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User>(loadStoredAuth)
   const [staffUsers, setStaffUsers] = useState<StoredStaffUser[]>(getStaff)
   const [forgotPasswordRequests, setForgotPasswordRequests] = useState<ForgotPasswordRequest[]>(getForgotPasswordRequests)
+  const [customers, setCustomers] = useState<StoredCustomer[]>(getCustomers)
 
   const login = useCallback(async (email: string, password: string): Promise<User | null> => {
     const trimmed = email.trim()
@@ -225,6 +233,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStoredAuth(u)
       return u
     }
+    // Demo customer account (standalone)
+    if (trimmed.toLowerCase() === CUSTOMER_EMAIL.toLowerCase()) {
+      const pwdOk = overrides[trimmed.toLowerCase()] !== undefined ? overrides[trimmed.toLowerCase()] === password : password === CUSTOMER_PASSWORD
+      if (pwdOk) {
+        const u: User = { type: 'customer', id: 'demo-customer', email: CUSTOMER_EMAIL, name: 'Customer' }
+        setUser(u)
+        setStoredAuth(u)
+        return u
+      }
+    }
     const staff = getStaff()
     const staffMatch = staff.find(
       (x) => x.email.toLowerCase() === trimmed.toLowerCase() && x.password === password
@@ -262,20 +280,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerCustomer = useCallback(
     async (email: string, password: string, name: string): Promise<{ ok: boolean; error?: string }> => {
-      const customers = getCustomers()
-      if (customers.some((c) => c.email.toLowerCase() === email.toLowerCase())) {
+      const list = getCustomers()
+      if (list.some((c) => c.email.toLowerCase() === email.toLowerCase())) {
         return { ok: false, error: 'Email already registered' }
       }
       const id = crypto.randomUUID()
-      customers.push({ id, email, password, name })
-      saveCustomers(customers)
+      const createdAt = new Date().toISOString()
+      list.push({ id, email, password, name, createdAt })
+      saveCustomers(list)
+      setCustomers(getCustomers())
       return { ok: true }
     },
     []
   )
 
   const addStaffUser = useCallback(
-    (data: { email: string; password: string; name: string; role: 'customer' | 'kitchen' | 'deliveryguy' }) => {
+    async (data: { email: string; password: string; name: string; role: 'customer' | 'kitchen' | 'deliveryguy' }) => {
       const newStaff: StoredStaffUser = {
         id: crypto.randomUUID(),
         email: data.email.trim(),
@@ -296,7 +316,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStoredAuth(null)
   }, [])
 
-  const addForgotPasswordRequest = useCallback((email: string, proofDataUrl?: string, proofFileName?: string): { ok: boolean; error?: string } => {
+  const addForgotPasswordRequest = useCallback(async (email: string, proofDataUrl?: string, proofFileName?: string): Promise<{ ok: boolean; error?: string }> => {
     const trimmed = email.trim().toLowerCase()
     if (!trimmed) return { ok: false, error: 'Email is required.' }
     const requests = getForgotPasswordRequests()
@@ -316,7 +336,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { ok: true }
   }, [])
 
-  const submitProofAndGetStatus = useCallback((email: string, proofDataUrl: string, proofFileName?: string): { ok: boolean; error?: string } => {
+  const submitProofAndGetStatus = useCallback(async (email: string, proofDataUrl: string, proofFileName?: string): Promise<{ ok: boolean; error?: string }> => {
     const trimmed = email.trim().toLowerCase()
     if (!trimmed) return { ok: false, error: 'Email is required.' }
     if (!proofDataUrl) return { ok: false, error: 'Please choose a file as proof of ownership.' }
@@ -349,7 +369,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return forgotPasswordRequests.filter((r) => r.email.toLowerCase() === trimmed)
   }, [forgotPasswordRequests])
 
-  const approveForgotPasswordRequest = useCallback((id: string): { ok: boolean; error?: string } => {
+  const approveForgotPasswordRequest = useCallback(async (id: string): Promise<{ ok: boolean; error?: string }> => {
     const requests = getForgotPasswordRequests()
     const req = requests.find((r) => r.id === id)
     if (!req) return { ok: false, error: 'Request not found.' }
@@ -360,14 +380,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { ok: true }
   }, [])
 
-  const rejectForgotPasswordRequest = useCallback((id: string) => {
+  const rejectForgotPasswordRequest = useCallback(async (id: string) => {
     const requests = getForgotPasswordRequests()
     const updated = requests.map((r) => (r.id === id ? { ...r, status: 'rejected' as const } : r))
     saveForgotPasswordRequests(updated)
     setForgotPasswordRequests(updated)
   }, [])
 
-  const setPasswordAfterApproval = useCallback((email: string, newPassword: string): { ok: boolean; error?: string } => {
+  const setPasswordAfterApproval = useCallback(async (email: string, newPassword: string): Promise<{ ok: boolean; error?: string }> => {
     const trimmed = email.trim().toLowerCase()
     if (!trimmed) return { ok: false, error: 'Email is required.' }
     if (!newPassword || newPassword.length < 4) return { ok: false, error: 'Password must be at least 4 characters.' }
@@ -375,7 +395,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const hasApproved = requests.some((r) => r.email.toLowerCase() === trimmed && r.status === 'approved')
     if (!hasApproved) return { ok: false, error: 'No approved request for this email. Only approved requests can change password here.' }
     const emailLower = trimmed
-    const systemEmails = [ADMIN_EMAIL.toLowerCase(), KITCHEN_EMAIL.toLowerCase(), DELIVERYGUY_EMAIL.toLowerCase()]
+    const systemEmails = [ADMIN_EMAIL.toLowerCase(), KITCHEN_EMAIL.toLowerCase(), DELIVERYGUY_EMAIL.toLowerCase(), CUSTOMER_EMAIL.toLowerCase()]
     if (systemEmails.includes(emailLower)) {
       const overrides = getPasswordOverrides()
       overrides[emailLower] = newPassword
@@ -388,11 +408,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         saveStaff(staff)
         setStaffUsers(staff)
       } else {
-        const customers = getCustomers()
-        const custIndex = customers.findIndex((c) => c.email.toLowerCase() === emailLower)
+        const customersList = getCustomers()
+        const custIndex = customersList.findIndex((c) => c.email.toLowerCase() === emailLower)
         if (custIndex !== -1) {
-          customers[custIndex] = { ...customers[custIndex], password: newPassword }
-          saveCustomers(customers)
+          customersList[custIndex] = { ...customersList[custIndex], password: newPassword }
+          saveCustomers(customersList)
         } else {
           return { ok: false, error: 'No account found for this email.' }
         }
@@ -408,6 +428,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       registerCustomer,
       logout,
       staffUsers,
+      customers: customers.map((c) => ({
+        id: c.id,
+        email: c.email,
+        name: c.name,
+        createdAt: c.createdAt ?? '',
+      })),
       addStaffUser,
       forgotPasswordRequests,
       addForgotPasswordRequest,
@@ -423,6 +449,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       registerCustomer,
       logout,
       staffUsers,
+      customers,
       addStaffUser,
       forgotPasswordRequests,
       addForgotPasswordRequest,

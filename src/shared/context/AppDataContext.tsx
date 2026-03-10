@@ -181,12 +181,34 @@ interface AppDataContextValue extends StoredData {
   addAdminChatMessage: (sender: CommunityChatSender, text: string) => void
   addDirectChatMessage: (conversationId: string, fromId: string, toId: string, text: string) => void
   addUpsAndDowns: (type: 'up' | 'down', label: string, role: UpsAndDownsRole) => UpsAndDownsEntry
+  /** Default GCash payment instruction image (data URL). Admin sets; customers see at /orders. */
+  paymentInstruction: string | null
+  setPaymentInstruction: (imageDataUrl: string) => void
+  updateOrderReceipt: (orderId: string, paymentReceiptDataUrl: string) => void
+  /** Mark order as done: sets doneAt, status=delivered, kitchen=completed, delivery=delivered|picked_up; order moves to Done order histories. */
+  updateOrderDone: (orderId: string) => void
 }
 
 const AppDataContext = createContext<AppDataContextValue | null>(null)
 
+const PAYMENT_INSTRUCTION_KEY = 'food-ordering-payment-instruction'
+
+function loadPaymentInstruction(): string | null {
+  try {
+    return localStorage.getItem(PAYMENT_INSTRUCTION_KEY)
+  } catch {
+    return null
+  }
+}
+
+function savePaymentInstruction(url: string | null) {
+  if (url) localStorage.setItem(PAYMENT_INSTRUCTION_KEY, url)
+  else localStorage.removeItem(PAYMENT_INSTRUCTION_KEY)
+}
+
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<StoredData>(loadData)
+  const [paymentInstruction, setPaymentInstructionState] = useState<string | null>(loadPaymentInstruction)
 
   useEffect(() => {
     saveData(data)
@@ -351,6 +373,45 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return entry
   }, [])
 
+  const setPaymentInstruction = useCallback((imageDataUrl: string) => {
+    setPaymentInstructionState(imageDataUrl)
+    savePaymentInstruction(imageDataUrl)
+  }, [])
+
+  const updateOrderReceipt = useCallback((orderId: string, paymentReceiptDataUrl: string) => {
+    const submittedAt = new Date().toISOString()
+    setData((d) => ({
+      ...d,
+      orders: d.orders.map((o) =>
+        o.id === orderId ? { ...o, paymentReceiptDataUrl, paymentReceiptSubmittedAt: submittedAt } : o
+      ),
+    }))
+  }, [])
+
+  const updateOrderDone = useCallback((orderId: string) => {
+    const now = new Date().toISOString()
+    setData((d) => {
+      const order = d.orders.find((o) => o.id === orderId)
+      const deliveryStatus = order?.deliveryOption === 'pickup' ? 'picked_up' : 'delivered'
+      return {
+        ...d,
+        orders: d.orders.map((o) =>
+          o.id === orderId
+            ? {
+                ...o,
+                doneAt: now,
+                status: 'delivered' as const,
+                paymentStatus: 'paid' as const,
+                calledStatus: 'completed' as const,
+                kitchenStatus: 'completed' as const,
+                deliveryStatus: deliveryStatus as DeliveryStatus,
+              }
+            : o
+        ),
+      }
+    })
+    }, [])
+
   const value = useMemo<AppDataContextValue>(
     () => ({
       ...data,
@@ -371,9 +432,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       addAdminChatMessage,
       addDirectChatMessage,
       addUpsAndDowns,
+      paymentInstruction,
+      setPaymentInstruction,
+      updateOrderReceipt,
+      updateOrderDone,
     }),
     [
       data,
+      paymentInstruction,
       addCategory,
       updateCategory,
       deleteCategory,
@@ -391,6 +457,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       addAdminChatMessage,
       addDirectChatMessage,
       addUpsAndDowns,
+      setPaymentInstruction,
+      updateOrderReceipt,
+      updateOrderDone,
     ]
   )
 

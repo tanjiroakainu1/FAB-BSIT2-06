@@ -8,6 +8,9 @@ const navItems = [
   { to: '/admin/products', end: false, label: 'Products' },
   { to: '/admin/archive', end: false, label: 'Archive' },
   { to: '/admin/orders', end: false, label: 'Orders' },
+  { to: '/admin/done-order-histories', end: false, label: 'Done order histories' },
+  { to: '/admin/payment-instruction', end: false, label: 'GCash instruction' },
+  { to: '/admin/payment-receipts', end: false, label: 'Payment receipts' },
   { to: '/admin/users', end: false, label: 'Users' },
   { to: '/admin/forgot-password-requests', end: false, label: 'Forgot password' },
   { to: '/admin/chat', end: false, label: 'Chat' },
@@ -26,11 +29,11 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-diamond-bg flex flex-col">
       <header className="border-b border-crimson-dark/30 bg-gradient-to-r from-crimson-dark to-crimson shadow-md shrink-0">
         <PageContainer>
-          <div className="flex min-h-14 flex-wrap items-center justify-between gap-2 py-3 sm:py-0 sm:gap-6">
+          <div className="flex min-h-9 sm:min-h-10 flex-wrap items-center justify-between gap-2 py-1.5 sm:py-1 sm:gap-4">
             <NavLink to="/admin" className="text-xs sm:text-base font-semibold text-white sm:text-lg shrink-0 min-w-0 truncate max-w-[120px] sm:max-w-[200px] lg:max-w-none">
               Food Ordering Hermanas · Admin
             </NavLink>
-            <nav className="flex flex-wrap items-center gap-1 sm:gap-6 min-h-[44px] lg:hidden">
+            <nav className="flex flex-wrap items-center gap-1 sm:gap-4 min-h-[36px] lg:hidden">
               {navItems.map(({ to, end, label }) => (
                 <NavLink
                   key={to}
@@ -43,21 +46,7 @@ export default function AdminLayout() {
                   {label}
                 </NavLink>
               ))}
-              <button
-                type="button"
-                onClick={() => logout()}
-                className="text-xs sm:text-sm font-medium text-white/85 hover:text-white min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 py-2 px-2 -m-2 sm:m-0 lg:hidden"
-              >
-                Logout
-              </button>
             </nav>
-            <button
-              type="button"
-              onClick={() => logout()}
-              className="hidden lg:block text-sm font-medium text-white/85 hover:text-white py-2"
-            >
-              Logout
-            </button>
           </div>
         </PageContainer>
       </header>

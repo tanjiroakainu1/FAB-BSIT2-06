@@ -34,21 +34,25 @@ export default function AdminOrders() {
     updateOrderDeliveryStatus,
     updateOrderCalledStatus,
     updateOrderKitchenStatus,
+    updateOrderDone,
   } = useAppData()
   const [search, setSearch] = useState('')
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null)
+  const [receiptOrder, setReceiptOrder] = useState<Order | null>(null)
+
+  const activeOrders = useMemo(() => orders.filter((o) => !o.doneAt), [orders])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return orders
-    return orders.filter(
+    if (!q) return activeOrders
+    return activeOrders.filter(
       (o) =>
         o.id.toLowerCase().includes(q) ||
         o.customerName.toLowerCase().includes(q) ||
         o.customerEmail.toLowerCase().includes(q) ||
         (o.contactNumber && o.contactNumber.toLowerCase().includes(q))
     )
-  }, [orders, search])
+  }, [activeOrders, search])
 
   const handleOrderStatusChange = (orderId: string, status: OrderStatus) => {
     updateOrderStatus(orderId, status)
@@ -75,9 +79,17 @@ export default function AdminOrders() {
     return d.toLocaleString()
   }
 
-  const pendingOrders = orders.filter((o) =>
+  const pendingOrders = activeOrders.filter((o) =>
     ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status)
   ).length
+
+  const isKitchenCompleted = (k: KitchenStatus | undefined) => k === 'completed'
+  const isDeliveryComplete = (d: DeliveryStatus | undefined) => d === 'delivered' || d === 'picked_up'
+  const isPaymentPaid = (p: PaymentStatus | undefined) => p === 'paid'
+  const isCalledCompleted = (c: CalledStatus | undefined) => c === 'completed'
+  const isOrderDelivered = (s: Order['status']) => s === 'delivered'
+  const statusGlowClass = 'border-emerald-400 bg-emerald-50 text-emerald-800 shadow-[0_0_8px_rgba(52,211,153,0.4)] focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/30'
+  const statusDefaultClass = 'border-diamond-border text-diamond focus:border-crimson focus:outline-none focus:ring-2 focus:ring-crimson'
 
   return (
     <PageContainer className="pb-12">
@@ -113,14 +125,14 @@ export default function AdminOrders() {
       <div className="card-diamond mt-6 overflow-hidden rounded-xl -mx-3 sm:mx-0">
         {filtered.length === 0 ? (
           <div className="p-6 sm:p-10 text-center text-diamond-muted text-sm sm:text-base">
-            {orders.length === 0 ? 'No orders yet.' : 'No orders match your search.'}
+            {activeOrders.length === 0 ? 'No active orders. Marked-done orders appear in Done order histories.' : 'No orders match your search.'}
           </div>
         ) : (
           <div className="overflow-x-auto overflow-y-visible" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <table className="min-w-[800px] sm:min-w-full divide-y divide-diamond-border">
+            <table className="min-w-[1000px] divide-y divide-diamond-border">
               <thead className="bg-gradient-to-r from-diamond-surface to-diamond-card">
                 <tr>
-                  <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted">Order ID</th>
+                  <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Order ID</th>
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Customer</th>
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Contact</th>
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Address / Event</th>
@@ -133,14 +145,27 @@ export default function AdminOrders() {
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Delivery status</th>
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Called</th>
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Kitchen</th>
+                  <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Receipt</th>
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted">Items</th>
-                  <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted">Details</th>
+                  <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap min-w-[7.5rem]">Details</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-diamond-border bg-diamond-card">
                 {filtered.map((order) => (
                   <tr key={order.id}>
-                    <td className="px-2 sm:px-4 py-3 font-mono text-xs sm:text-sm text-diamond">{order.id.slice(0, 8)}…</td>
+                    <td className="px-2 sm:px-4 py-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs sm:text-sm text-diamond">{order.id.slice(0, 8)}…</span>
+                        <button
+                          type="button"
+                          onClick={() => updateOrderDone(order.id)}
+                          className="rounded bg-emerald-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 touch-manipulation shrink-0"
+                          title="Mark order as done (moves to Done order histories)"
+                        >
+                          Done order
+                        </button>
+                      </div>
+                    </td>
                     <td className="px-2 sm:px-4 py-3 text-diamond text-xs sm:text-sm min-w-0">
                       <div className="truncate">{order.customerName}</div>
                       <div className="text-xs text-diamond-muted truncate">{order.customerEmail}</div>
@@ -163,7 +188,10 @@ export default function AdminOrders() {
                       <select
                         value={order.status}
                         onChange={(e) => handleOrderStatusChange(order.id, e.target.value as OrderStatus)}
-                        className="rounded border border-diamond-border px-2 py-1.5 sm:py-1 text-xs sm:text-sm text-diamond focus:border-crimson focus:outline-none focus:ring-1 focus:ring-crimson bg-diamond-surface min-h-[44px] sm:min-h-0 w-full min-w-0 max-w-[120px]"
+                        className={`rounded border px-2 py-1.5 sm:py-1 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 bg-diamond-surface min-h-[44px] sm:min-h-0 w-full min-w-0 max-w-[120px] ${
+                          isOrderDelivered(order.status) ? statusGlowClass : statusDefaultClass
+                        }`}
+                        title="Order status"
                       >
                         {ORDER_STATUS_OPTIONS.map((s) => (
                           <option key={s} value={s}>
@@ -177,7 +205,10 @@ export default function AdminOrders() {
                       <select
                         value={order.paymentStatus ?? 'pending'}
                         onChange={(e) => handlePaymentStatusChange(order.id, e.target.value as PaymentStatus)}
-                        className="rounded border border-diamond-border px-2 py-1.5 sm:py-1 text-xs sm:text-sm text-diamond focus:border-crimson focus:outline-none focus:ring-1 focus:ring-crimson bg-diamond-surface min-h-[44px] sm:min-h-0 w-full min-w-0 max-w-[90px]"
+                        className={`rounded border px-2 py-1.5 sm:py-1 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 bg-diamond-surface min-h-[44px] sm:min-h-0 w-full min-w-0 max-w-[90px] ${
+                          isPaymentPaid(order.paymentStatus) ? statusGlowClass : statusDefaultClass
+                        }`}
+                        title="Payment status"
                       >
                         {PAYMENT_STATUS_OPTIONS.map((s) => (
                           <option key={s} value={s}>
@@ -191,7 +222,10 @@ export default function AdminOrders() {
                       <select
                         value={order.deliveryStatus ?? 'pending'}
                         onChange={(e) => handleDeliveryStatusChange(order.id, e.target.value as DeliveryStatus)}
-                        className="rounded border border-diamond-border px-2 py-1.5 sm:py-1 text-xs sm:text-sm text-diamond focus:border-crimson focus:outline-none focus:ring-1 focus:ring-crimson bg-diamond-surface min-h-[44px] sm:min-h-0 w-full min-w-0 max-w-[130px]"
+                        className={`rounded border px-2 py-1.5 sm:py-1 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 bg-diamond-surface min-h-[44px] sm:min-h-0 w-full min-w-0 max-w-[130px] ${
+                          isDeliveryComplete(order.deliveryStatus) ? statusGlowClass : statusDefaultClass
+                        }`}
+                        title="Delivery status"
                       >
                         {DELIVERY_STATUS_OPTIONS.map((s) => (
                           <option key={s} value={s}>
@@ -204,7 +238,9 @@ export default function AdminOrders() {
                       <select
                         value={order.calledStatus ?? 'pending'}
                         onChange={(e) => handleCalledStatusChange(order.id, e.target.value as CalledStatus)}
-                        className="rounded border border-diamond-border px-2 py-1.5 sm:py-1 text-xs sm:text-sm text-diamond focus:border-crimson focus:outline-none focus:ring-1 focus:ring-crimson bg-diamond-surface min-h-[44px] sm:min-h-0 w-full min-w-0 max-w-[100px]"
+                        className={`rounded border px-2 py-1.5 sm:py-1 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 bg-diamond-surface min-h-[44px] sm:min-h-0 w-full min-w-0 max-w-[100px] ${
+                          isCalledCompleted(order.calledStatus) ? statusGlowClass : statusDefaultClass
+                        }`}
                         title="Order called out to customer (admin only)"
                       >
                         {CALLED_STATUS_OPTIONS.map((s) => (
@@ -218,7 +254,9 @@ export default function AdminOrders() {
                       <select
                         value={order.kitchenStatus ?? 'pending'}
                         onChange={(e) => handleKitchenStatusChange(order.id, e.target.value as KitchenStatus)}
-                        className="rounded border border-diamond-border px-2 py-1.5 sm:py-1 text-xs sm:text-sm text-diamond focus:border-crimson focus:outline-none focus:ring-1 focus:ring-crimson bg-diamond-surface min-h-[44px] sm:min-h-0 w-full min-w-0 max-w-[100px]"
+                        className={`rounded border px-2 py-1.5 sm:py-1 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 bg-diamond-surface min-h-[44px] sm:min-h-0 w-full min-w-0 max-w-[100px] ${
+                          isKitchenCompleted(order.kitchenStatus) ? statusGlowClass : statusDefaultClass
+                        }`}
                         title="Kitchen status (admin only)"
                       >
                         {KITCHEN_STATUS_OPTIONS.map((s) => (
@@ -228,10 +266,24 @@ export default function AdminOrders() {
                         ))}
                       </select>
                     </td>
+                    <td className="px-2 sm:px-4 py-3 text-xs sm:text-sm">
+                      {order.paymentReceiptDataUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => setReceiptOrder(order)}
+                          className="inline-flex items-center gap-1 rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-800 hover:bg-green-200"
+                          title="View receipt"
+                        >
+                          <span aria-hidden>✓</span> View photo
+                        </button>
+                      ) : (
+                        <span className="text-diamond-muted">—</span>
+                      )}
+                    </td>
                     <td className="px-2 sm:px-4 py-3 text-xs sm:text-sm text-diamond-muted max-w-[160px] min-w-0">
                       <span className="line-clamp-2">{order.items.map((i) => `${i.name} × ${i.quantity}`).join(', ')}</span>
                     </td>
-                    <td className="px-2 sm:px-4 py-3">
+                    <td className="px-2 sm:px-4 py-3 whitespace-nowrap min-w-[7.5rem]">
                       <button
                         type="button"
                         onClick={() => setDetailsOrder(order)}
@@ -252,6 +304,31 @@ export default function AdminOrders() {
         menuItems={menuItems}
         onClose={() => setDetailsOrder(null)}
       />
+
+      {receiptOrder?.paymentReceiptDataUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Payment receipt"
+          onClick={() => setReceiptOrder(null)}
+        >
+          <div className="relative max-h-[90vh] max-w-4xl" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={receiptOrder.paymentReceiptDataUrl}
+              alt="Payment receipt"
+              className="max-h-[90vh] max-w-full rounded-lg border-2 border-diamond-border object-contain bg-diamond-card"
+            />
+            <button
+              type="button"
+              onClick={() => setReceiptOrder(null)}
+              className="absolute top-2 right-2 rounded bg-black/60 px-3 py-1.5 text-sm text-white hover:bg-black/80"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </PageContainer>
   )
 }

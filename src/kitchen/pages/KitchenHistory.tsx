@@ -3,74 +3,56 @@ import { PageContainer, OrderDetailsModal } from '@shared/components'
 import { useAppData } from '@shared/context'
 import type { Order } from '@shared/types'
 
-export default function KitchenOrders() {
-  const { orders, menuItems, updateOrderKitchenStatus } = useAppData()
+export default function KitchenHistory() {
+  const { orders, menuItems } = useAppData()
   const [search, setSearch] = useState('')
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null)
 
-  /** Only orders waiting for kitchen to complete (same list Admin sees; after Approve they move to Kitchen History). */
-  const pendingOrders = useMemo(
-    () => orders.filter((o) => (o.kitchenStatus ?? 'pending') === 'pending'),
+  /** Orders where kitchen has approved (kitchen_status = completed). */
+  const completedOrders = useMemo(
+    () => orders.filter((o) => (o.kitchenStatus ?? 'pending') === 'completed'),
     [orders]
   )
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return pendingOrders
-    return pendingOrders.filter(
+    if (!q) return completedOrders
+    return completedOrders.filter(
       (o) =>
         o.id.toLowerCase().includes(q) ||
         o.customerName.toLowerCase().includes(q) ||
         (o.contactNumber && o.contactNumber.toLowerCase().includes(q))
     )
-  }, [pendingOrders, search])
+  }, [completedOrders, search])
 
-  const handleApprove = (orderId: string) => {
-    updateOrderKitchenStatus(orderId, 'completed')
-  }
-
-  const formatDate = (iso: string) => {
-    const d = new Date(iso)
-    return d.toLocaleString()
-  }
-
-  const pendingCount = pendingOrders.length
+  const formatDate = (iso: string) => new Date(iso).toLocaleString()
 
   return (
     <PageContainer className="pb-12">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="flex items-baseline gap-3">
-            <h1 className="text-2xl font-bold text-diamond sm:text-3xl">Kitchen</h1>
-            <span className="h-px flex-1 max-w-[60px] bg-gradient-to-r from-crimson/60 to-transparent" aria-hidden />
-          </div>
-          <p className="mt-2 text-diamond-muted">Orders from Admin appear here. Click Approve when the order is ready — it will move to Kitchen History and appear for Delivery.</p>
-        </div>
-        <div className="card-diamond rounded-xl px-4 py-2 text-center">
-          <span className="text-xs font-medium text-diamond-muted">Pending</span>
-          <p className="text-xl font-bold text-crimson">{pendingCount}</p>
-        </div>
+      <div className="mb-6 flex items-baseline gap-3">
+        <h1 className="text-2xl font-bold text-diamond sm:text-3xl">Kitchen history</h1>
+        <span className="h-px flex-1 max-w-[60px] bg-gradient-to-r from-crimson/60 to-transparent" aria-hidden />
       </div>
+      <p className="mt-2 text-diamond-muted">
+        Orders you have approved (kitchen completed). These are now visible to Delivery.
+      </p>
 
-      <div className="card-diamond rounded-xl p-4 sm:p-5">
-        <label htmlFor="kitchen-search" className="sr-only">
-          Search orders
-        </label>
+      <div className="card-diamond mt-6 rounded-xl p-4 sm:p-5">
+        <label htmlFor="kitchen-history-search" className="sr-only">Search orders</label>
         <input
-          id="kitchen-search"
+          id="kitchen-history-search"
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by order ID, name, or contact..."
           className="w-full max-w-md rounded-lg border border-diamond-border bg-diamond-surface px-4 py-2.5 text-diamond placeholder-diamond-muted transition focus:border-crimson focus:outline-none focus:ring-2 focus:ring-crimson/20"
-          aria-label="Search orders"
         />
       </div>
 
       <div className="card-diamond mt-6 overflow-hidden rounded-xl -mx-3 sm:mx-0">
         {filtered.length === 0 ? (
           <div className="p-6 sm:p-10 text-center text-diamond-muted text-sm sm:text-base">
-            {pendingOrders.length === 0 ? 'No orders waiting. New orders from Admin will appear here; completed orders are in History.' : 'No orders match your search.'}
+            {completedOrders.length === 0 ? 'No completed orders yet. Approve orders on the Orders page to see them here.' : 'No orders match your search.'}
           </div>
         ) : (
           <div className="overflow-x-auto overflow-y-visible" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -81,8 +63,8 @@ export default function KitchenOrders() {
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Customer</th>
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Date</th>
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Items</th>
+                  <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Kitchen</th>
                   <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Details</th>
-                  <th className="px-2 sm:px-4 py-3 text-right text-xs sm:text-sm font-medium text-diamond-muted whitespace-nowrap">Approve</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-diamond-border bg-diamond-card">
@@ -98,21 +80,17 @@ export default function KitchenOrders() {
                       <span className="line-clamp-2">{order.items.map((i) => `${i.name} × ${i.quantity}`).join(', ')}</span>
                     </td>
                     <td className="px-2 sm:px-4 py-3">
+                      <span className="inline-flex rounded-md bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                        Completed
+                      </span>
+                    </td>
+                    <td className="px-2 sm:px-4 py-3">
                       <button
                         type="button"
                         onClick={() => setDetailsOrder(order)}
                         className="rounded bg-crimson/10 px-2.5 py-2 sm:py-1 text-xs font-medium text-crimson hover:bg-crimson/20 focus:outline-none focus:ring-2 focus:ring-crimson focus:ring-offset-1 min-h-[44px] sm:min-h-0 touch-manipulation"
                       >
                         View details
-                      </button>
-                    </td>
-                    <td className="px-2 sm:px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleApprove(order.id)}
-                        className="rounded bg-green-600 px-3 py-2 sm:py-1.5 text-xs font-medium text-white hover:bg-green-700 min-h-[44px] sm:min-h-0 touch-manipulation"
-                      >
-                        Approve
                       </button>
                     </td>
                   </tr>

@@ -8,10 +8,10 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [result, setResult] = useState<{ ok: boolean; error?: string } | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setResult(null)
-    const res = addForgotPasswordRequest(email)
+    const res = await addForgotPasswordRequest(email)
     setResult(res)
     if (res.ok) setEmail('')
   }

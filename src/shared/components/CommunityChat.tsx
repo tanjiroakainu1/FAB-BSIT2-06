@@ -172,7 +172,10 @@ export function CommunityChat({ sender }: CommunityChatProps) {
                         : 'text-diamond hover:bg-diamond-surface'
                     }`}
                   >
-                    <span className="block font-medium truncate">{e.label}</span>
+                    <span className="block font-medium truncate">{e.id === 'group' ? 'Group chat' : e.label}</span>
+                    {e.id === 'group' && (
+                      <span className="block text-xs text-diamond-muted mt-0.5">Admin, Kitchen, Delivery</span>
+                    )}
                     {e.staff && (
                       <>
                         <span className="block truncate text-xs text-diamond-muted">{e.staff.email}</span>
@@ -193,11 +196,16 @@ export function CommunityChat({ sender }: CommunityChatProps) {
             {selectedEntry ? (
               <>
                 <div className="border-b border-diamond-border bg-diamond-surface px-4 py-2 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-diamond">
-                    {selectedEntry.type === 'staff' && selectedEntry.staff
-                      ? `${selectedEntry.staff.name} (${selectedEntry.staff.role === 'deliveryguy' ? 'Delivery' : 'Kitchen'})`
-                      : selectedEntry.label}
-                  </h2>
+                  <div>
+                    <h2 className="text-sm font-semibold text-diamond">
+                      {selectedEntry.type === 'staff' && selectedEntry.staff
+                        ? `${selectedEntry.staff.name} (${selectedEntry.staff.role === 'deliveryguy' ? 'Delivery' : 'Kitchen'})`
+                        : isGroupChat ? 'Group chat' : selectedEntry.label}
+                    </h2>
+                    {isGroupChat && (
+                      <p className="text-xs text-diamond-muted mt-0.5">Messages from Admin, Kitchen &amp; Delivery — everyone sees the same thread.</p>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => setSelectedId(null)}
@@ -213,7 +221,7 @@ export function CommunityChat({ sender }: CommunityChatProps) {
                       className="flex max-h-[50vh] sm:max-h-[320px] min-h-[200px] flex-1 flex-col overflow-y-auto overflow-x-hidden p-4"
                     >
                       {groupMessages.length === 0 ? (
-                        <p className="text-center text-sm text-diamond-muted py-4">No messages yet. Say hello!</p>
+                        <p className="text-center text-sm text-diamond-muted py-4">No messages yet. Say hello! Admin, Kitchen, and Delivery all share this chat — log in as each role to send messages that everyone will see.</p>
                       ) : (
                         groupMessages.map((msg) => {
                           const isMe = msg.sender === sender

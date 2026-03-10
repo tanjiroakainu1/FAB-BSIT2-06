@@ -4,6 +4,7 @@ import { useAuth } from '@shared/context'
 
 const navItems = [
   { to: '/kitchen', end: true, label: 'Orders' },
+  { to: '/kitchen/history', end: false, label: 'History' },
   { to: '/kitchen/chat', end: false, label: 'Chat' },
 ]
 
@@ -19,11 +20,11 @@ export default function KitchenLayout() {
     <div className="min-h-screen bg-diamond-bg flex flex-col">
       <header className="border-b border-crimson-dark/30 bg-gradient-to-r from-crimson-dark to-crimson shadow-md shrink-0">
         <PageContainer>
-          <div className="flex min-h-14 flex-wrap items-center justify-between gap-2 py-3 sm:py-0 sm:gap-6">
+          <div className="flex min-h-9 sm:min-h-10 flex-wrap items-center justify-between gap-2 py-1.5 sm:py-1 sm:gap-4">
             <NavLink to="/kitchen" className="text-xs sm:text-base font-semibold text-white sm:text-lg shrink-0 min-w-0 truncate max-w-[140px] sm:max-w-none">
               Food Ordering Hermanas · Kitchen
             </NavLink>
-            <nav className="flex flex-wrap items-center gap-1 sm:gap-6 min-h-[44px] lg:hidden">
+            <nav className="flex flex-wrap items-center gap-1 sm:gap-4 min-h-[36px] lg:hidden">
               {navItems.map(({ to, end, label }) => (
                 <NavLink
                   key={to}

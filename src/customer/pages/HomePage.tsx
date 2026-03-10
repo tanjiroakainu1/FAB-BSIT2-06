@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageContainer } from '@shared/components'
 import { formatPrice } from '@shared/utils'
-import { useAppData } from '@shared/context'
+import { useAppData, useAuth } from '@shared/context'
 
 export default function HomePage() {
+  const { user } = useAuth()
   const { categories, menuItems } = useAppData()
+  const isSignedIn = !!user
   const [searchQuery, setSearchQuery] = useState('')
   const availableItems = menuItems.filter((m) => m.available)
   const searchLower = searchQuery.trim().toLowerCase()
@@ -24,7 +26,9 @@ export default function HomePage() {
           Food Ordering Hermanas
         </h1>
         <p className="relative mt-3 max-w-xl mx-auto text-sm text-diamond-muted sm:text-lg">
-          Order your favorite dishes. Browse the menu, sign in to add to cart, and we’ll take care of the rest.
+          {isSignedIn
+            ? "Order your favorite dishes. Browse the menu, add to cart, and we'll take care of the rest."
+            : "Order your favorite dishes. Browse the menu, sign in to add to cart, and we'll take care of the rest."}
         </p>
         <div className="relative mt-6 flex flex-wrap justify-center gap-3">
           <Link
@@ -33,12 +37,60 @@ export default function HomePage() {
           >
             View menu
           </Link>
-          <Link
-            to="/login"
-            className="rounded-lg border-2 border-crimson/50 bg-transparent px-5 py-3 min-h-[48px] inline-flex items-center justify-center font-semibold text-crimson transition hover:bg-crimson/10 touch-manipulation"
-          >
-            Sign in
-          </Link>
+          {!isSignedIn && (
+            <Link
+              to="/login"
+              className="rounded-lg border-2 border-crimson/50 bg-transparent px-5 py-3 min-h-[48px] inline-flex items-center justify-center font-semibold text-crimson transition hover:bg-crimson/10 touch-manipulation"
+            >
+              Sign in
+            </Link>
+          )}
+        </div>
+      </section>
+
+      {/* How the system works */}
+      <section className="mt-12">
+        <div className="flex items-baseline gap-3">
+          <h2 className="text-xl font-bold text-diamond sm:text-2xl">How the system works</h2>
+          <span className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-crimson/60 to-transparent" aria-hidden />
+        </div>
+        <p className="mt-2 text-diamond-muted">Our ordering and fulfillment flow from browse to delivery.</p>
+        <div className="card-diamond mt-6 rounded-xl p-6 sm:p-8">
+          <h3 className="text-base font-semibold text-diamond mb-4">Customer flow</h3>
+          <ol className="space-y-3 text-sm text-diamond-muted">
+            <li className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-crimson/15 text-crimson text-xs font-bold">1</span>
+              <span><strong className="text-diamond">Browse the menu</strong> — You can view and search the menu here or on the Menu page without logging in. Filter by category to find dishes, combos, and add-ons.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-crimson/15 text-crimson text-xs font-bold">2</span>
+              <span>
+                {isSignedIn ? (
+                  <><strong className="text-diamond">You&apos;re signed in</strong> — You can add items to the cart and place an order from the Menu or Cart.</>
+                ) : (
+                  <><strong className="text-diamond">Sign in or register</strong> — To add items to the cart and place an order, log in or create an account.</>
+                )}
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-crimson/15 text-crimson text-xs font-bold">3</span>
+              <span><strong className="text-diamond">Add to cart</strong> — Open a product to choose half/full tray, notes, and add-ons. Your cart keeps main items and add-ons separate with images.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-crimson/15 text-crimson text-xs font-bold">4</span>
+              <span><strong className="text-diamond">Checkout</strong> — Enter when you need the order (date & time), payment method (Cash or GCash), contact and delivery details, then place the order.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-crimson/15 text-crimson text-xs font-bold">5</span>
+              <span><strong className="text-diamond">Order history</strong> — View your orders and status anytime. Use “View details” to see full order info and items.</span>
+            </li>
+          </ol>
+          <h3 className="text-base font-semibold text-diamond mt-6 mb-3">Behind the scenes</h3>
+          <ul className="space-y-2 text-sm text-diamond-muted">
+            <li>• <strong className="text-diamond">Admin</strong> manages the menu (categories, products, combos), orders, and forgot-password requests, and chats with staff.</li>
+            <li>• <strong className="text-diamond">Kitchen</strong> sees pending orders and marks them ready when prepared.</li>
+            <li>• <strong className="text-diamond">Delivery</strong> sees active deliveries, marks them done when delivered or picked up, and can view delivery history.</li>
+          </ul>
         </div>
       </section>
 
@@ -48,7 +100,9 @@ export default function HomePage() {
           <h2 className="text-xl font-bold text-diamond sm:text-2xl">Our menu</h2>
           <span className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-crimson/60 to-transparent" aria-hidden />
         </div>
-        <p className="mt-2 text-diamond-muted">Browse our offerings. Log in or register to place an order.</p>
+        <p className="mt-2 text-diamond-muted">
+          {isSignedIn ? 'Browse our offerings. Add items to your cart to place an order.' : 'Browse our offerings. Log in or register to place an order.'}
+        </p>
 
         {availableItems.length > 0 && (
           <div className="mt-4">
@@ -92,7 +146,7 @@ export default function HomePage() {
                       return (
                         <div
                           key={item.id}
-                          className="card-diamond group rounded-xl overflow-hidden transition-all duration-200 hover:shadow-[0_8px_30px_-8px_rgba(196,30,58,0.2)]"
+                          className="card-diamond group rounded-xl overflow-hidden transition-all duration-200 hover:shadow-[0_8px_30px_-8px_rgba(211,47,47,0.2)]"
                         >
                           {item.imageUrl && (
                             <div className="relative h-44 overflow-hidden">
@@ -147,7 +201,7 @@ export default function HomePage() {
                         return (
                           <div
                             key={item.id}
-                            className="card-diamond group rounded-xl overflow-hidden transition-all duration-200 hover:shadow-[0_8px_30px_-8px_rgba(196,30,58,0.2)]"
+                            className="card-diamond group rounded-xl overflow-hidden transition-all duration-200 hover:shadow-[0_8px_30px_-8px_rgba(211,47,47,0.2)]"
                           >
                             {item.imageUrl && (
                               <div className="relative h-44 overflow-hidden">
@@ -186,25 +240,27 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* CTA */}
-        <div className="card-diamond mt-14 rounded-xl p-8 text-center sm:p-10">
-          <p className="text-lg font-semibold text-diamond">Ready to order?</p>
-          <p className="mt-2 text-sm text-diamond-muted">Log in or create an account to add items to your cart.</p>
-          <div className="mt-6 flex flex-wrap justify-center gap-4">
-            <Link
-              to="/login"
-              className="rounded-lg bg-crimson px-6 py-3 font-semibold text-white shadow-md shadow-crimson/20 transition hover:bg-crimson-light w-full sm:w-auto text-center"
-            >
-              Log in
-            </Link>
-            <Link
-              to="/register"
-              className="rounded-lg border-2 border-diamond-border px-6 py-3 font-semibold text-diamond-muted transition hover:bg-diamond-surface hover:border-crimson/30 hover:text-crimson w-full sm:w-auto text-center"
-            >
-              Register
-            </Link>
+        {/* CTA — only show sign-in prompt for non–signed-in users */}
+        {!isSignedIn && (
+          <div className="card-diamond mt-14 rounded-xl p-8 text-center sm:p-10">
+            <p className="text-lg font-semibold text-diamond">Ready to order?</p>
+            <p className="mt-2 text-sm text-diamond-muted">Log in or create an account to add items to your cart.</p>
+            <div className="mt-6 flex flex-wrap justify-center gap-4">
+              <Link
+                to="/login"
+                className="rounded-lg bg-crimson px-6 py-3 font-semibold text-white shadow-md shadow-crimson/20 transition hover:bg-crimson-light w-full sm:w-auto text-center"
+              >
+                Log in
+              </Link>
+              <Link
+                to="/register"
+                className="rounded-lg border-2 border-diamond-border px-6 py-3 font-semibold text-diamond-muted transition hover:bg-diamond-surface hover:border-crimson/30 hover:text-crimson w-full sm:w-auto text-center"
+              >
+                Register
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
       </section>
     </PageContainer>
   )

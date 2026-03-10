@@ -87,6 +87,7 @@ export default function CheckoutPage() {
       items,
       total,
       status: 'pending',
+      customerId: user.id,
       customerName: user.name,
       customerEmail: user.email,
       paymentMethod,

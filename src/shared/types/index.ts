@@ -49,6 +49,8 @@ export interface Order {
   total: number
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
   createdAt: string
+  /** Set when order is placed by a logged-in registered customer (users.id). */
+  customerId?: string
   customerName: string
   customerEmail: string
   paymentMethod: PaymentMethod
@@ -75,6 +77,12 @@ export interface Order {
   needByDate?: string
   /** When the customer needs this order (time, HH:mm). */
   needByTime?: string
+  /** Customer-uploaded GCash receipt image (data URL). */
+  paymentReceiptDataUrl?: string
+  /** When the receipt was submitted. */
+  paymentReceiptSubmittedAt?: string
+  /** When admin marked order as done (moves to Done order histories). */
+  doneAt?: string
 }
 
 export type OrderStatus = Order['status']

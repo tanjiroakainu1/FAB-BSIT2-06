@@ -19,7 +19,7 @@ export default function CustomerLayout() {
   }
 
   const navLinkClass = (isActive: boolean) =>
-    `text-xs sm:text-sm font-medium py-2.5 px-3 sm:py-2 sm:px-2 rounded-lg min-w-[44px] sm:min-w-0 text-center transition-colors duration-200 ${
+    `text-xs sm:text-sm font-medium py-1.5 px-2 sm:py-1 sm:px-2 rounded-lg min-w-[44px] sm:min-w-0 text-center transition-colors duration-200 ${
       isActive ? 'text-white bg-white/20' : 'text-white/90 hover:text-white hover:bg-white/10'
     }`
 
@@ -28,17 +28,17 @@ export default function CustomerLayout() {
       <header className="relative border-b border-crimson-dark/40 bg-gradient-to-r from-crimson-dark via-crimson to-crimson-dark shadow-lg shrink-0 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(255,255,255,0.12)_0%,transparent_50%)]" aria-hidden />
         <PageContainer className="relative">
-          <div className="flex min-h-14 sm:min-h-16 flex-wrap items-center justify-between gap-2 py-3 sm:py-0 sm:gap-6">
+          <div className="flex min-h-9 sm:min-h-10 flex-wrap items-center justify-between gap-2 py-1.5 sm:py-1 sm:gap-4">
             <NavLink
               to="/home"
-              className="flex items-center gap-2 text-base font-bold tracking-tight text-white sm:text-xl shrink-0 min-w-0 truncate max-w-[180px] sm:max-w-none hover:text-white/95 transition-opacity"
+              className="flex items-center gap-1.5 text-sm font-bold tracking-tight text-white sm:text-base shrink-0 min-w-0 truncate max-w-[180px] sm:max-w-none hover:text-white/95 transition-opacity"
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20 text-white text-lg" aria-hidden>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/20 text-white text-sm" aria-hidden>
                 🍽
               </span>
               <span>Food Ordering Hermanas</span>
             </NavLink>
-            <nav className="flex flex-wrap items-center gap-1 sm:gap-1 min-h-[44px]">
+            <nav className="flex flex-wrap items-center gap-0.5 sm:gap-1 min-h-[36px]">
               <NavLink to="/home" end className={({ isActive }) => navLinkClass(isActive)}>
                 Home
               </NavLink>
@@ -66,12 +66,12 @@ export default function CustomerLayout() {
                     <span className="hidden md:inline">System Charts</span>
                     <span className="md:hidden">Charts</span>
                   </NavLink>
-                  <span className="text-xs sm:text-sm text-white/90 flex items-center flex-wrap gap-2 pl-1">
+                  <span className="text-xs sm:text-sm text-white/90 flex items-center flex-wrap gap-1 pl-1">
                     <span className="truncate max-w-[80px] sm:max-w-none font-medium">{user.name}</span>
                     <button
                       type="button"
                       onClick={() => logout()}
-                      className="rounded-lg px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white transition-colors"
+                      className="rounded-lg px-2 py-1 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white transition-colors"
                     >
                       Logout
                     </button>
@@ -96,11 +96,11 @@ export default function CustomerLayout() {
             </nav>
           </div>
           {categories.length > 0 && (
-            <div className="flex items-center gap-2 py-2 overflow-x-auto min-h-[44px]">
+            <div className="flex items-center gap-1.5 py-1 overflow-x-auto min-h-[32px]">
               <NavLink
                 to="/menu"
                 className={({ isActive }) =>
-                  `shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${isActive && !location.search ? 'bg-white/25 text-white' : 'text-white/90 hover:bg-white/15 hover:text-white'}`
+                  `shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition ${isActive && !location.search ? 'bg-white/25 text-white' : 'text-white/90 hover:bg-white/15 hover:text-white'}`
                 }
               >
                 All
@@ -110,7 +110,7 @@ export default function CustomerLayout() {
                   key={cat.id}
                   to={`/menu?category=${encodeURIComponent(cat.id)}`}
                   className={({ isActive }) =>
-                    `shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${isActive ? 'bg-white/25 text-white' : 'text-white/90 hover:bg-white/15 hover:text-white'}`
+                    `shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition ${isActive ? 'bg-white/25 text-white' : 'text-white/90 hover:bg-white/15 hover:text-white'}`
                   }
                 >
                   {cat.name}

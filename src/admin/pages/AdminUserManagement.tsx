@@ -8,12 +8,13 @@ const ROLE_OPTIONS = [
   { value: 'deliveryguy', label: 'Delivery' },
 ] as const
 
-type UserRow = 
-  | { type: 'system'; email: string; name: string; role: 'admin' | 'kitchen' | 'deliveryguy' }
+type UserRow =
+  | { type: 'system'; email: string; name: string; role: 'admin' | 'kitchen' | 'deliveryguy' | 'customer' }
   | { type: 'added'; id: string; email: string; name: string; role: string; createdAt: string }
+  | { type: 'customer'; id: string; email: string; name: string; createdAt: string }
 
 export default function AdminUserManagement() {
-  const { staffUsers, addStaffUser } = useAuth()
+  const { staffUsers, customers, addStaffUser } = useAuth()
   const [search, setSearch] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,19 +33,28 @@ export default function AdminUserManagement() {
       role: u.role,
       createdAt: u.createdAt,
     }))
-    return [...system, ...added]
-  }, [staffUsers])
+    const registered: UserRow[] = customers.map((c) => ({
+      type: 'customer' as const,
+      id: c.id,
+      email: c.email,
+      name: c.name,
+      createdAt: c.createdAt,
+    }))
+    return [...system, ...added, ...registered]
+  }, [staffUsers, customers])
 
   const searchLower = search.trim().toLowerCase()
   const filteredUsers = useMemo(
     () =>
       searchLower
-        ? allUsers.filter(
-            (u) =>
+        ? allUsers.filter((u) => {
+            const roleStr = u.type === 'customer' ? 'customer' : u.role
+            return (
               u.email.toLowerCase().includes(searchLower) ||
               u.name.toLowerCase().includes(searchLower) ||
-              u.role.toLowerCase().includes(searchLower)
-          )
+              roleStr.toLowerCase().includes(searchLower)
+            )
+          })
         : allUsers,
     [allUsers, searchLower]
   )
@@ -87,7 +97,7 @@ export default function AdminUserManagement() {
     <PageContainer>
       <h1 className="text-2xl font-bold text-diamond">User management</h1>
       <p className="mt-2 text-diamond-muted">
-        View system accounts (Admin, Kitchen, Delivery) and add more Kitchen or Delivery users. All data is stored locally in this browser.
+        View system accounts (Admin, Kitchen, Delivery, Customer), staff you add, and customers who registered (with OTP). All data is stored in this browser (localStorage).
       </p>
 
       <form onSubmit={handleSubmit} className="card-diamond mt-6 flex flex-wrap items-end gap-4 rounded-lg p-4">
@@ -183,17 +193,21 @@ export default function AdminUserManagement() {
                   <td className="px-2 sm:px-4 py-3 text-diamond text-xs sm:text-sm truncate max-w-[140px] sm:max-w-none">{u.email}</td>
                   <td className="px-2 sm:px-4 py-3 text-diamond text-xs sm:text-sm">{u.name}</td>
                   <td className="px-2 sm:px-4 py-3 text-diamond capitalize text-xs sm:text-sm">
-                    {u.role === 'deliveryguy' ? 'Delivery' : u.role}
+                    {u.type === 'customer' ? 'Customer' : u.role === 'deliveryguy' ? 'Delivery' : u.role}
                   </td>
                   <td className="px-2 sm:px-4 py-3">
-                    {u.type === 'system' ? (
+                    {u.type === 'system' && (
                       <span className="inline-flex items-center rounded-md bg-crimson/10 px-2 py-0.5 text-xs font-medium text-crimson">System</span>
-                    ) : (
+                    )}
+                    {u.type === 'added' && (
                       <span className="inline-flex items-center rounded-md bg-diamond-surface border border-diamond-border px-2 py-0.5 text-xs font-medium text-diamond-muted">Added</span>
+                    )}
+                    {u.type === 'customer' && (
+                      <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">Registered (OTP)</span>
                     )}
                   </td>
                   <td className="px-2 sm:px-4 py-3 text-diamond-muted text-xs sm:text-sm whitespace-nowrap">
-                    {u.type === 'system' ? '—' : new Date(u.createdAt).toLocaleString()}
+                    {u.type === 'system' ? '—' : u.createdAt ? new Date(u.createdAt).toLocaleString() : '—'}
                   </td>
                 </tr>
               ))
